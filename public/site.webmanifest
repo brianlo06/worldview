@@ -1,0 +1,14 @@
+{
+  "name": "Worldview — Situational Awareness Globe",
+  "short_name": "Worldview",
+  "description": "A live globe of world events.",
+  "icons": [
+    { "src": "/favicon-32.png", "sizes": "32x32", "type": "image/png" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/favicon.svg", "type": "image/svg+xml", "sizes": "any" }
+  ],
+  "theme_color": "#02040a",
+  "background_color": "#02040a",
+  "display": "standalone",
+  "start_url": "/"
+}
