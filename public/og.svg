@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" fill="none">
+  <defs>
+    <radialGradient id="vign" cx="38%" cy="45%" r="75%">
+      <stop offset="0%" stop-color="#02040a" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.75"/>
+    </radialGradient>
+    <pattern id="scan" width="1" height="3" patternUnits="userSpaceOnUse">
+      <rect width="1" height="1" fill="#4cc9ff" opacity="0.05"/>
+    </pattern>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softglow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="3.5"/>
+    </filter>
+  </defs>
+
+  <!-- Full 1200x1200 transparent; the 1200x630 OG design is centered (y+285).
+       Rendered square 1:1 by Quick Look, then center-cropped to 1200x630. -->
+  <g transform="translate(0 285)">
+    <rect width="1200" height="630" fill="#02040a"/>
+    <rect width="1200" height="630" fill="url(#scan)"/>
+
+    <!-- Wireframe globe -->
+    <g transform="translate(890 315)" stroke="#4cc9ff" fill="none">
+      <circle r="232" stroke="#7be0ff" stroke-opacity="0.5" stroke-width="1.5" filter="url(#softglow)"/>
+      <circle r="232" stroke="#7be0ff" stroke-opacity="0.65" stroke-width="1.5"/>
+      <g stroke="#4cc9ff" stroke-opacity="0.32" stroke-width="1.2">
+        <ellipse rx="232" ry="78"/>
+        <ellipse rx="232" ry="150"/>
+        <ellipse rx="232" ry="215"/>
+        <ellipse rx="78" ry="232"/>
+        <ellipse rx="150" ry="232"/>
+        <ellipse rx="215" ry="232"/>
+        <line x1="-232" y1="0" x2="232" y2="0"/>
+        <line x1="0" y1="-232" x2="0" y2="232"/>
+      </g>
+      <circle cx="92" cy="-120" r="4.5" fill="#7be0ff" stroke="none" filter="url(#glow)"/>
+      <circle cx="-140" cy="40" r="4" fill="#9affb2" stroke="none" filter="url(#glow)"/>
+      <circle cx="30" cy="150" r="5" fill="#ff7a4a" stroke="none" filter="url(#glow)"/>
+      <circle cx="150" cy="70" r="3.5" fill="#7be0ff" stroke="none" filter="url(#glow)"/>
+    </g>
+
+    <rect width="1200" height="630" fill="url(#vign)"/>
+
+    <!-- Left text block -->
+    <g font-family="Menlo, ui-monospace, monospace">
+      <text x="90" y="212" fill="#4cc9ff" fill-opacity="0.6" font-size="22" letter-spacing="9">SITUATIONAL AWARENESS</text>
+      <text x="86" y="312" fill="#7be0ff" font-size="104" letter-spacing="14" filter="url(#glow)">WORLDVIEW</text>
+      <rect x="92" y="346" width="430" height="1.5" fill="#4cc9ff" fill-opacity="0.45"/>
+      <text x="92" y="392" fill="#cfe6ff" fill-opacity="0.85" font-size="24" letter-spacing="3">A live 3D globe of world events.</text>
+      <text x="92" y="468" fill="#4cc9ff" fill-opacity="0.7" font-size="19" letter-spacing="6">GDELT FEED · CLUSTERING · ANOMALY DETECTION</text>
+    </g>
+
+    <!-- Corner brackets -->
+    <g stroke="#7be0ff" stroke-width="2" stroke-opacity="0.7" fill="none">
+      <path d="M40 64 V40 H64"/>
+      <path d="M1160 64 V40 H1136"/>
+      <path d="M40 566 V590 H64"/>
+      <path d="M1160 566 V590 H1136"/>
+    </g>
+    <text x="1136" y="556" text-anchor="end" font-family="Menlo, ui-monospace, monospace" fill="#4cc9ff" fill-opacity="0.45" font-size="16" letter-spacing="4">v0.1</text>
+  </g>
+</svg>

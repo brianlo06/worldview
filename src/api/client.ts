@@ -4,6 +4,35 @@ import type { Category } from '../globe/categories'
 const API_BASE =
   (import.meta.env.VITE_API_BASE as string | undefined) ?? 'http://127.0.0.1:8088'
 
+const DEFAULT_TIMEOUT_MS = 8000
+
+// fetch() only aborts on the caller's signal — a backend that accepts the
+// socket but never responds would hang forever, freezing boot with no SEED
+// fallback (the offline path only triggers on rejection). Race every request
+// against a timeout so a dead/slow API degrades instead of stalling.
+async function timedFetch(
+  url: string,
+  init: RequestInit & { signal?: AbortSignal } = {},
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<Response> {
+  const ctrl = new AbortController()
+  const onCallerAbort = () => ctrl.abort(init.signal?.reason)
+  if (init.signal) {
+    if (init.signal.aborted) ctrl.abort(init.signal.reason)
+    else init.signal.addEventListener('abort', onCallerAbort, { once: true })
+  }
+  const timer = setTimeout(
+    () => ctrl.abort(new DOMException('Request timed out', 'TimeoutError')),
+    timeoutMs,
+  )
+  try {
+    return await fetch(url, { ...init, signal: ctrl.signal })
+  } finally {
+    clearTimeout(timer)
+    init.signal?.removeEventListener('abort', onCallerAbort)
+  }
+}
+
 type GeoPrecision = 'point' | 'city' | 'state' | 'country'
 
 interface ApiEvent {
@@ -78,7 +107,7 @@ export async function fetchRecentEvents(
     params.set('min_importance', String(opts.minImportance))
 
   const url = `${API_BASE}/events/recent?${params}`
-  const res = await fetch(url, { signal: opts.signal })
+  const res = await timedFetch(url, { signal: opts.signal })
   if (!res.ok) throw new Error(`API ${res.status} ${res.statusText}`)
   const events = (await res.json()) as ApiEvent[]
   return events.map(toDot)
@@ -147,7 +176,7 @@ export interface ApiAnomaly {
 }
 
 export async function fetchAnomalies(signal?: AbortSignal): Promise<ApiAnomaly[]> {
-  const res = await fetch(`${API_BASE}/anomalies`, { signal })
+  const res = await timedFetch(`${API_BASE}/anomalies`, { signal })
   if (!res.ok) throw new Error(`API ${res.status} ${res.statusText}`)
   return (await res.json()) as ApiAnomaly[]
 }
@@ -180,17 +209,22 @@ export async function searchClusters(
   query: string,
   opts: { hours?: number; limit?: number; minSimilarity?: number; signal?: AbortSignal } = {},
 ): Promise<SearchHit[]> {
-  const res = await fetch(`${API_BASE}/search`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    signal: opts.signal,
-    body: JSON.stringify({
-      query,
-      hours: opts.hours ?? 48,
-      limit: opts.limit ?? 30,
-      min_similarity: opts.minSimilarity ?? 0.45,
-    }),
-  })
+  const res = await timedFetch(
+    `${API_BASE}/search`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: opts.signal,
+      body: JSON.stringify({
+        query,
+        hours: opts.hours ?? 48,
+        limit: opts.limit ?? 30,
+        min_similarity: opts.minSimilarity ?? 0.45,
+      }),
+    },
+    // Search runs an embedding inference + pgvector scan — allow more headroom.
+    15000,
+  )
   if (!res.ok) throw new Error(`API ${res.status} ${res.statusText}`)
   const results = (await res.json()) as ApiSearchResult[]
   const hits: SearchHit[] = []
@@ -235,7 +269,7 @@ export async function fetchClusters(opts: {
   if (opts.minEvents !== undefined) params.set('min_events', String(opts.minEvents))
   if (opts.limit !== undefined) params.set('limit', String(opts.limit))
   const url = `${API_BASE}/clusters?${params}`
-  const res = await fetch(url, { signal: opts.signal })
+  const res = await timedFetch(url, { signal: opts.signal })
   if (!res.ok) throw new Error(`API ${res.status} ${res.statusText}`)
   const clusters = (await res.json()) as ApiCluster[]
   return clusters
@@ -245,7 +279,7 @@ export async function fetchClusters(opts: {
 
 export async function apiHealth(signal?: AbortSignal): Promise<boolean> {
   try {
-    const res = await fetch(`${API_BASE}/health`, { signal })
+    const res = await timedFetch(`${API_BASE}/health`, { signal }, 4000)
     return res.ok
   } catch {
     return false
@@ -282,7 +316,7 @@ export interface MarketSnapshot {
 }
 
 export async function fetchMarkets(signal?: AbortSignal): Promise<MarketSnapshot[]> {
-  const res = await fetch(`${API_BASE}/markets`, { signal })
+  const res = await timedFetch(`${API_BASE}/markets`, { signal })
   if (!res.ok) throw new Error(`API ${res.status} ${res.statusText}`)
   const markets = (await res.json()) as ApiMarket[]
   return markets.map((m) => ({

@@ -182,26 +182,34 @@ export function Globe() {
     sceneRef.current?.setDots(sceneDots)
   }, [sceneDots])
 
-  // Poll anomalies every 60s; on first arrival of a new anomaly id, chime once
+  // Poll anomalies every 60s; on first arrival of a new anomaly id, chime once.
+  // seenIds lives in a ref (not effect deps) so setAnomalies → re-render does
+  // NOT tear down and rebuild the interval — that would reset the poll cadence,
+  // fire an extra fetch every cycle, and defeat the new-anomaly dedup.
+  const seenAnomalyIds = useRef<Set<string> | null>(null)
   useEffect(() => {
     if (!ready) return
     let cancelled = false
-    const seenIds = new Set<string>(anomalies.map((a) => a.id))
 
     const tick = async () => {
       try {
         const fresh = await fetchAnomalies()
         if (cancelled) return
-        const newOnes = fresh.filter((a) => !seenIds.has(a.id))
-        if (newOnes.length > 0 && seenIds.size > 0) {
-          // Don't chime on first load (initial set) — only on truly new ones
-          audio.chime()
-          // JARVIS calls out the region for the first new anomaly each round
-          const first = newOnes[0]
-          const place = countryName(first.region_code) ?? first.region_code
-          speak(`Anomaly detected in ${place}.`)
+        const seen = seenAnomalyIds.current
+        if (seen === null) {
+          // First poll primes the baseline — don't chime for what's already live
+          seenAnomalyIds.current = new Set(fresh.map((a) => a.id))
+        } else {
+          const newOnes = fresh.filter((a) => !seen.has(a.id))
+          if (newOnes.length > 0) {
+            audio.chime()
+            // JARVIS calls out the region for the first new anomaly each round
+            const first = newOnes[0]
+            const place = countryName(first.region_code) ?? first.region_code
+            speak(`Anomaly detected in ${place}.`)
+          }
+          for (const a of fresh) seen.add(a.id)
         }
-        for (const a of fresh) seenIds.add(a.id)
         setAnomalies(fresh)
       } catch (e) {
         if (!cancelled) console.warn('anomaly fetch failed', e)
@@ -213,7 +221,7 @@ export function Globe() {
       cancelled = true
       clearInterval(id)
     }
-  }, [ready, setAnomalies, anomalies])
+  }, [ready, setAnomalies])
 
   // Push active anomaly pins to the sonar-ring marker layer — these are big,
   // persistent rings that float above the dot cloud, unlike the small one-shot
