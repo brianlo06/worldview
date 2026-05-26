@@ -66,18 +66,24 @@ export interface SpeakOptions {
   volume?: number
 }
 
-/** Speak `text`. Silent no-op if audio is muted or the platform lacks TTS. */
-export function speak(text: string, opts: SpeakOptions = {}): void {
-  if (!text || audio.isMuted()) return
-  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
+/** Speak `text`. Silent no-op if audio is muted or the platform lacks TTS.
+ *  Returns a Promise that resolves when the utterance ends (or immediately
+ *  if speech was skipped). Backwards-compatible — existing fire-and-forget
+ *  callers can ignore the return value. */
+export function speak(text: string, opts: SpeakOptions = {}): Promise<void> {
+  if (!text || audio.isMuted()) return Promise.resolve()
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+    return Promise.resolve()
+  }
 
   const synth = window.speechSynthesis
   // Wait until voices are loaded (Chrome fires this async on first call)
   if (!voicesLoaded) {
     ensureVoices()
     if (!voicesLoaded) {
-      setTimeout(() => speak(text, opts), 250)
-      return
+      return new Promise<void>((resolve) => {
+        setTimeout(() => speak(text, opts).then(resolve), 250)
+      })
     }
   }
   if (opts.interrupt !== false) synth.cancel()
@@ -88,7 +94,13 @@ export function speak(text: string, opts: SpeakOptions = {}): void {
   u.rate = opts.rate ?? 1.0
   u.pitch = opts.pitch ?? 1.0
   u.volume = opts.volume ?? 0.6
-  synth.speak(u)
+  return new Promise<void>((resolve) => {
+    // Resolve on either successful end or error so an async sequence isn't
+    // permanently blocked by a single failed utterance.
+    u.onend = () => resolve()
+    u.onerror = () => resolve()
+    synth.speak(u)
+  })
 }
 
 /** Cancel any speech currently in flight. */

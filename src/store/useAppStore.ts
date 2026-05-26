@@ -81,7 +81,7 @@ interface AppState {
   setDots: (d: DotRecord[]) => void
 
   // FlyTo action signal — Globe consumes and resets to null after applying.
-  flyToTarget: { lat: number; lon: number; id?: string } | null
+  flyToTarget: { lat: number; lon: number; id?: string; durationMs?: number } | null
   setFlyToTarget: (t: AppState['flyToTarget']) => void
 
   // Anomaly alerts — active region spikes

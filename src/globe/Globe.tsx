@@ -237,7 +237,7 @@ export function Globe() {
   // FlyTo action signal — applied once then cleared
   useEffect(() => {
     if (!flyToTarget || !sceneRef.current) return
-    sceneRef.current.flyTo(flyToTarget.lat, flyToTarget.lon)
+    sceneRef.current.flyTo(flyToTarget.lat, flyToTarget.lon, flyToTarget.durationMs)
     setFlyToTarget(null)
   }, [flyToTarget, setFlyToTarget])
 

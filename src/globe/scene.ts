@@ -21,7 +21,7 @@ export interface SceneHandle {
   dispose(): void
   setDots(records: DotRecord[]): void
   onPick(handler: (record: DotRecord | null) => void): void
-  flyTo(lat: number, lon: number): void
+  flyTo(lat: number, lon: number, durationMs?: number): void
   setTourMode(b: boolean): void
   setAutoPulse(b: boolean): void
   spawnBreakingPulse(record?: DotRecord): void
@@ -324,7 +324,7 @@ export function createScene(
     onPick(handler) {
       pickHandler = handler
     },
-    flyTo: (lat, lon) => {
+    flyTo: (lat, lon, durationMs) => {
       audio.whoosh(0.4)
       // Place the selection marker at the destination — clicks from the
       // BREAKING / SEARCH panels feed in here and the user expects the same
@@ -334,7 +334,8 @@ export function createScene(
       // above the dot to avoid Z-fighting.
       const pos = latLonToVec3(lat, lon, EARTH_RADIUS * 1.012)
       marker.setTarget(pos, elapsedNow())
-      controls.flyTo(lat, lon)
+      // controls.flyTo signature: (lat, lon, distance?, durationMs?)
+      controls.flyTo(lat, lon, undefined, durationMs)
     },
     setTourMode(b) {
       if (tour.isEnabled() === b) return  // no-op + no whoosh on redundant set

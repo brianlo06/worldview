@@ -9,6 +9,7 @@ import type { DotRecord } from '../globe/dots'
 import { TIERS } from '../globe/tiers'
 import { MarketsPanel } from './MarketsPanel'
 import { CenterCrosshair, TelemetryReadout } from './Telemetry'
+import { Briefing } from './Briefing'
 
 const SELECTION_TOP_OFFSET = '5.5rem'
 const BREAKING_COUNT = 10
@@ -34,6 +35,7 @@ function isNewsDot(d: DotRecord): boolean {
 export function Hud() {
   const [now, setNow] = useState(() => new Date())
   const [muted, setMuted] = useState(() => audio.isMuted())
+  const [briefingActive, setBriefingActive] = useState(false)
   const anomalyListRef = useRef<HTMLDivElement>(null)
   const [anomaliesOverflow, setAnomaliesOverflow] = useState(false)
   const anomalies = useAppStore((s) => s.anomalies)
@@ -401,6 +403,19 @@ export function Hud() {
           </button>
           <button
             type="button"
+            onClick={() => setBriefingActive(true)}
+            disabled={briefingActive}
+            className={`border px-2 py-1 text-[10px] transition ${
+              briefingActive
+                ? 'border-[#7be0ff] bg-[#4cc9ff]/15 text-[#cfe6ff] cursor-not-allowed'
+                : 'border-[#4cc9ff]/40 text-[#4cc9ff]/90 hover:bg-[#4cc9ff]/10'
+            }`}
+            title="JARVIS reads the top 5 stories while the globe flies to each"
+          >
+            {briefingActive ? '◐ BRIEFING · LIVE' : '◯ BRIEFING'}
+          </button>
+          <button
+            type="button"
             onClick={() => setTourMode(!tourMode)}
             className={`border px-2 py-1 text-[10px] transition ${
               tourMode
@@ -668,6 +683,10 @@ export function Hud() {
           </div>
         </div>
       )}
+
+      {/* JARVIS top-stories briefing overlay — token-fired by the BRIEFING button.
+          Self-contained: fetches, sequences, dispatches flyTo/setSelectedEntity. */}
+      {briefingActive && <Briefing onClose={() => setBriefingActive(false)} />}
     </div>
   )
 }
