@@ -70,7 +70,7 @@ export function Globe() {
         // Load textures + events (clusters or raw, by mode) + markets in parallel
         const newsFetch =
           layerMode === 'clusters'
-            ? fetchClusters({ hours: 48, minEvents: 1, limit: 2000, signal: abort.signal })
+            ? fetchClusters({ hours: 48, minEvents: 1, limit: 2000, tier: significanceTier, signal: abort.signal })
             : fetchRecentEvents({
                 hours: 48,
                 limit: 2000,
@@ -249,7 +249,7 @@ export function Globe() {
       try {
         const newsFetch =
           layerMode === 'clusters'
-            ? fetchClusters({ hours: 48, minEvents: 1, limit: 2000 })
+            ? fetchClusters({ hours: 48, minEvents: 1, limit: 2000, tier: significanceTier })
             : fetchRecentEvents({ hours: 48, limit: 2000, minImportance: 0.3 })
         const [events, markets] = await Promise.all([newsFetch, fetchMarkets()])
         if (cancelled) return
@@ -273,7 +273,7 @@ export function Globe() {
       cancelled = true
       clearInterval(id)
     }
-  }, [ready, layerMode, setDotsInStore, setEventCount, setApiStatus, setLastUpdated, setMarkets])
+  }, [ready, layerMode, significanceTier, setDotsInStore, setEventCount, setApiStatus, setLastUpdated, setMarkets])
 
   return (
     <>

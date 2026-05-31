@@ -256,7 +256,11 @@ export function createScene(
 
     earth.update(elapsed, now)
     clouds.update(elapsed)
-    dots.update(elapsed)
+    // Distance to origin works because controls.target is locked at (0,0,0)
+    // (enablePan = false in controls.ts); if panning is ever enabled, switch
+    // to camera.position.distanceTo(controls.target).
+    const cameraDistance = camera.position.length()
+    dots.update(elapsed, cameraDistance)
     halos.update(elapsed, renderer.getPixelRatio())
     pulses.update(elapsed)
     anomalyMarkers.update(elapsed)

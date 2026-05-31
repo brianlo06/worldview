@@ -1,5 +1,6 @@
 import type { DotRecord } from '../globe/dots'
 import type { Category } from '../globe/categories'
+import type { SignificanceTier } from '../globe/tiers'
 
 const API_BASE =
   (import.meta.env.VITE_API_BASE as string | undefined) ?? 'http://127.0.0.1:8088'
@@ -262,12 +263,14 @@ export async function fetchClusters(opts: {
   hours?: number
   minEvents?: number
   limit?: number
+  tier?: SignificanceTier
   signal?: AbortSignal
 } = {}): Promise<DotRecord[]> {
   const params = new URLSearchParams()
   if (opts.hours !== undefined) params.set('hours', String(opts.hours))
   if (opts.minEvents !== undefined) params.set('min_events', String(opts.minEvents))
   if (opts.limit !== undefined) params.set('limit', String(opts.limit))
+  if (opts.tier !== undefined) params.set('tier', opts.tier)
   const url = `${API_BASE}/clusters?${params}`
   const res = await timedFetch(url, { signal: opts.signal })
   if (!res.ok) throw new Error(`API ${res.status} ${res.statusText}`)

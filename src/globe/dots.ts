@@ -35,10 +35,18 @@ export interface DotsHandle {
   setDots(records: DotRecord[]): void
   records(): DotRecord[]
   positionAt(instanceId: number): THREE.Vector3 | null
-  update(elapsed: number): void
+  update(elapsed: number, cameraDistance: number): void
 }
 
 const MAX_DOTS = 50_000
+
+// Zoom-adaptive dot sizing. As the camera approaches the globe, shrink dots
+// so clustered regions visually separate instead of fusing into a blob.
+// keep in sync with OrbitControls minDistance/maxDistance in controls.ts
+const ZOOM_MIN_DISTANCE = 1.4
+const ZOOM_MAX_DISTANCE = 6.0
+const ZOOM_NEAR_SCALE = 0.45
+const ZOOM_FAR_SCALE = 1.0
 
 export function createDots(): DotsHandle {
   const geometry = new THREE.SphereGeometry(0.014, 10, 10)
@@ -57,6 +65,7 @@ export function createDots(): DotsHandle {
 
   const uniforms = {
     uTime: { value: 0 },
+    uZoomFactor: { value: 1.0 },
   }
 
   const material = new THREE.ShaderMaterial({
@@ -116,8 +125,17 @@ export function createDots(): DotsHandle {
     setDots,
     records: () => current,
     positionAt: (id) => positions[id]?.clone() ?? null,
-    update(elapsed) {
+    update(elapsed, cameraDistance) {
       uniforms.uTime.value = elapsed
+      const t = Math.max(
+        0,
+        Math.min(
+          1,
+          (cameraDistance - ZOOM_MIN_DISTANCE) / (ZOOM_MAX_DISTANCE - ZOOM_MIN_DISTANCE),
+        ),
+      )
+      const z = t * t * (3 - 2 * t)
+      uniforms.uZoomFactor.value = ZOOM_NEAR_SCALE + (ZOOM_FAR_SCALE - ZOOM_NEAR_SCALE) * z
     },
   }
 }

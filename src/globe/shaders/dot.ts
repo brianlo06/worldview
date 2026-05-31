@@ -3,6 +3,7 @@ export const dotVertexShader = /* glsl */ `
   attribute float aImportance;
   attribute vec3  aColor;
   uniform float uTime;
+  uniform float uZoomFactor;
 
   varying float vPulse;
   varying vec3  vColor;
@@ -15,7 +16,7 @@ export const dotVertexShader = /* glsl */ `
     vPulse = pulse;
     vColor = aColor;
 
-    vec3 scaled = position * pulse * impScale;
+    vec3 scaled = position * pulse * impScale * uZoomFactor;
     vec4 wp = modelMatrix * instanceMatrix * vec4(scaled, 1.0);
     vWorldPos = wp.xyz;
     vWorldNormal = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal);
