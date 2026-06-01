@@ -12,7 +12,7 @@ import { CenterCrosshair, TelemetryReadout } from './Telemetry'
 import { Briefing } from './Briefing'
 
 const SELECTION_TOP_OFFSET = '5.5rem'
-const BREAKING_COUNT = 10
+const BREAKING_COUNT = 6
 
 function formatUTC(d: Date) {
   return d.toISOString().replace('T', ' ').slice(0, 19) + ' UTC'
@@ -317,7 +317,7 @@ export function Hud() {
             </span>
           </div>
           {breakingItems.length > 0 ? (
-            <ul className="mt-2 space-y-1 pointer-events-auto">
+            <ul className="mt-2 space-y-1 pointer-events-auto max-h-[calc(100vh-17rem)] overflow-y-auto pr-1">
               {breakingItems.map((b, i) => {
                 const isSelected = selected?.id === b.id
                 return (
