@@ -109,7 +109,7 @@ export function BootScreen({ onComplete }: { onComplete: () => void }) {
 
       {/* Author credit + contact, bottom-center, always visible */}
       <div
-        className="absolute bottom-7 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-[#4cc9ff]/50 text-[10px]"
+        className="absolute bottom-7 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-[#4cc9ff]/50 text-hud-xs"
         style={{ textShadow: '0 0 6px rgba(76,201,255,0.35)' }}
       >
         <span className="tracking-[0.4em]">MADE BY BRIAN LO</span>
@@ -122,26 +122,26 @@ export function BootScreen({ onComplete }: { onComplete: () => void }) {
       </div>
 
       {/* Top label */}
-      <div className="absolute top-7 left-1/2 -translate-x-1/2 text-[#4cc9ff]/60 text-[10px] tracking-[0.3em]">
+      <div className="absolute top-7 left-1/2 -translate-x-1/2 text-[#4cc9ff]/60 text-hud-xs tracking-[0.3em]">
         SYSTEM INITIALIZATION
       </div>
-      <div className="absolute top-7 right-12 text-[#4cc9ff]/40 text-[10px] tracking-widest tabular-nums">
+      <div className="absolute top-7 right-12 text-[#4cc9ff]/40 text-hud-xs tracking-widest tabular-nums">
         {nowStamp()}
       </div>
 
       {/* Title */}
       <div
-        className="text-[#7be0ff] text-[2.6rem] tracking-[0.45em] mb-2 leading-none"
+        className="text-[#7be0ff] text-hud-title tracking-[0.45em] mb-2 leading-none"
         style={{ textShadow: '0 0 14px rgba(124,224,255,0.7), 0 0 28px rgba(76,201,255,0.4)' }}
       >
         WORLDVIEW
       </div>
-      <div className="text-[#4cc9ff]/60 text-[10px] tracking-[0.45em] mb-12">
+      <div className="text-[#4cc9ff]/60 text-hud-xs tracking-[0.45em] mb-12">
         SITUATIONAL AWARENESS // v0.1
       </div>
 
       {/* Boot log */}
-      <div className="text-[11px] w-[42rem] max-w-[calc(100vw-4rem)] space-y-0.5 relative z-10">
+      <div className="text-hud-sm w-[42rem] max-w-[calc(100vw-4rem)] space-y-0.5 relative z-10">
         {BOOT_LINES.slice(0, linesShown).map((line, i) => (
           <div key={i} className="flex items-baseline">
             <span className="text-[#9affb2]" style={{ textShadow: '0 0 6px rgba(154,255,178,0.5)' }}>
@@ -164,12 +164,12 @@ export function BootScreen({ onComplete }: { onComplete: () => void }) {
         {allDone && (
           <>
             <div
-              className="text-[#9affb2] text-sm tracking-[0.32em]"
+              className="text-[#9affb2] text-hud-md tracking-[0.32em]"
               style={{ textShadow: '0 0 10px rgba(154,255,178,0.7)' }}
             >
               ◉ ALL SYSTEMS NOMINAL
             </div>
-            <div className="text-[#4cc9ff]/70 text-[10px] tracking-[0.3em] mt-4 animate-pulse">
+            <div className="text-[#4cc9ff]/70 text-hud-xs tracking-[0.3em] mt-4 animate-pulse">
               CLICK OR PRESS ANY KEY TO CONTINUE
             </div>
           </>

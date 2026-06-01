@@ -179,7 +179,7 @@ export function Hud() {
   const hasSearchResults = searchResults !== null
 
   return (
-    <div className="pointer-events-none absolute inset-0 text-[11px] tracking-widest uppercase">
+    <div className="pointer-events-none absolute inset-0 text-hud-sm tracking-widest uppercase">
       {/* Center reticle — always-on Stark crosshair */}
       <CenterCrosshair />
 
@@ -191,7 +191,7 @@ export function Hud() {
       {apiStatus === 'offline' && (
         <div className="absolute top-[2.25rem] left-1/2 -translate-x-1/2 w-[30rem] max-w-[calc(100vw-14rem)] pointer-events-none">
           <div
-            className="border border-[#ffb84c]/55 bg-[#02040a]/80 backdrop-blur-sm px-3 py-1.5 flex items-center gap-2 text-[10px] tracking-[0.22em] text-[#ffb84c]/95"
+            className="border border-[#ffb84c]/55 bg-[#02040a]/80 backdrop-blur-sm px-3 py-1.5 flex items-center gap-2 text-hud-xs tracking-[0.22em] text-[#ffb84c]/95"
             role="status"
             aria-live="polite"
           >
@@ -224,25 +224,25 @@ export function Hud() {
               : 'border-[#4cc9ff]/40 focus-within:border-[#7be0ff]/70'
           }`}
         >
-          <span className="text-[12px] opacity-50">⌕</span>
+          <span className="text-hud-md opacity-50">⌕</span>
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={onSearchKey}
             placeholder="SEARCH STORIES   ·   try: trade tensions in asia"
-            className="flex-1 bg-transparent text-[12px] tracking-wide outline-none text-[#cfe6ff] placeholder:text-[#4cc9ff]/35 normal-case"
+            className="flex-1 bg-transparent text-hud-md tracking-wide outline-none text-[#cfe6ff] placeholder:text-[#4cc9ff]/35 normal-case"
             spellCheck={false}
             autoComplete="off"
           />
           {searchStatus === 'pending' && (
-            <span className="text-[10px] opacity-60">…</span>
+            <span className="text-hud-xs opacity-60">…</span>
           )}
           {hasSearchResults && (
             <button
               type="button"
               onClick={clearSearch}
-              className="text-[10px] opacity-60 hover:opacity-100"
+              className="text-hud-xs opacity-60 hover:opacity-100"
             >
               CLEAR
             </button>
@@ -251,7 +251,7 @@ export function Hud() {
         {hasSearchResults && (
           <div className="mt-2 border border-[#4cc9ff]/30 bg-[#02040a]/80 backdrop-blur-sm max-h-[50vh] overflow-y-auto pointer-events-auto">
             {searchResults!.length === 0 ? (
-              <div className="px-3 py-3 text-[11px] opacity-60">NO MATCHES</div>
+              <div className="px-3 py-3 text-hud-sm opacity-60">NO MATCHES</div>
             ) : (
               <ul>
                 {searchResults!.slice(0, 12).map((r, i) => {
@@ -273,10 +273,10 @@ export function Hud() {
                         }}
                       />
                       <div className="min-w-0 flex-1">
-                        <div className="text-[11px] normal-case tracking-normal leading-snug text-[#dfeeff] line-clamp-2">
+                        <div className="text-hud-sm normal-case tracking-normal leading-snug text-[#dfeeff] line-clamp-2">
                           {r.title}
                         </div>
-                        <div className="text-[9px] opacity-50 normal-case tracking-wide mt-0.5 flex items-center gap-2">
+                        <div className="text-hud-2xs opacity-50 normal-case tracking-wide mt-0.5 flex items-center gap-2">
                           <span>{r.sourceOutlet ?? '—'}</span>
                           <span className="opacity-60">·</span>
                           <span>sim {(r.similarity ?? 0).toFixed(2)}</span>
@@ -298,11 +298,11 @@ export function Hud() {
 
       {/* Top-left */}
       <div className="absolute top-[2.25rem] left-4 text-[#4cc9ff]/90 max-w-[22rem]">
-        <div className="text-sm tracking-[0.3em]">WORLDVIEW</div>
-        <div className="text-[10px] opacity-60 mt-1">Situational Awareness // Phase 1</div>
+        <div className="text-hud-md tracking-[0.3em]">WORLDVIEW</div>
+        <div className="text-hud-xs opacity-60 mt-1">Situational Awareness // Phase 1</div>
 
         <div className="mt-4">
-          <div className="text-[10px] opacity-70 tracking-[0.25em] flex items-center gap-1.5">
+          <div className="text-hud-xs opacity-70 tracking-[0.25em] flex items-center gap-1.5">
             <span
               className="inline-block w-1.5 h-1.5 rounded-full"
               style={{
@@ -340,13 +340,13 @@ export function Hud() {
                     />
                     <div className="min-w-0">
                       <div
-                        className="normal-case tracking-normal text-[11px] leading-snug text-[#ffd9d2]/95 group-hover:text-[#ffe9e4] line-clamp-2"
+                        className="normal-case tracking-normal text-hud-sm leading-snug text-[#ffd9d2]/95 group-hover:text-[#ffe9e4] line-clamp-2"
                         title={b.title}
                       >
                         {b.title}
                       </div>
                       {b.sourceOutlet && (
-                        <div className="text-[9px] opacity-50 normal-case tracking-wide mt-0.5">
+                        <div className="text-hud-2xs opacity-50 normal-case tracking-wide mt-0.5">
                           {b.sourceOutlet}
                         </div>
                       )}
@@ -356,7 +356,7 @@ export function Hud() {
               })}
             </ul>
           ) : (
-            <div className="mt-2 text-[10px] tracking-[0.18em] text-[#4cc9ff]/40 px-1.5 py-2">
+            <div className="mt-2 text-hud-xs tracking-[0.18em] text-[#4cc9ff]/40 px-1.5 py-2">
               ◯ NO ACTIVE BREAKING EVENTS
             </div>
           )}
@@ -366,7 +366,7 @@ export function Hud() {
       {/* Top-right */}
       <div className="absolute top-[2.25rem] right-4 text-right text-[#4cc9ff]/90 flex flex-col items-end gap-1">
         <div>{formatUTC(now)}</div>
-        <div className="text-[10px] opacity-60">
+        <div className="text-hud-xs opacity-60">
           <span
             className={
               apiStatus === 'connected'
@@ -384,14 +384,14 @@ export function Hud() {
           </span>
           {'  '}·{'  '}{eventCount} EVENTS{'  '}·{'  '}L{layers.size}
         </div>
-        <div className="text-[10px] opacity-50">
+        <div className="text-hud-xs opacity-50">
           UPDATED {relativeTime(lastUpdated, now.getTime())}
         </div>
         <div className="pointer-events-auto mt-1 flex gap-1">
           <button
             type="button"
             onClick={() => setLayerMode(layerMode === 'clusters' ? 'events' : 'clusters')}
-            className={`border px-2 py-1 text-[10px] transition ${
+            className={`border px-2 py-1 text-hud-xs transition ${
               layerMode === 'clusters'
                 ? 'border-[#7be0ff] bg-[#4cc9ff]/15 text-[#cfe6ff]'
                 : 'border-[#4cc9ff]/40 text-[#4cc9ff]/90 hover:bg-[#4cc9ff]/10'
@@ -405,7 +405,7 @@ export function Hud() {
             type="button"
             onClick={() => setBriefingActive(true)}
             disabled={briefingActive}
-            className={`border px-2 py-1 text-[10px] transition ${
+            className={`border px-2 py-1 text-hud-xs transition ${
               briefingActive
                 ? 'border-[#7be0ff] bg-[#4cc9ff]/15 text-[#cfe6ff] cursor-not-allowed'
                 : 'border-[#4cc9ff]/40 text-[#4cc9ff]/90 hover:bg-[#4cc9ff]/10'
@@ -417,7 +417,7 @@ export function Hud() {
           <button
             type="button"
             onClick={() => setTourMode(!tourMode)}
-            className={`border px-2 py-1 text-[10px] transition ${
+            className={`border px-2 py-1 text-hud-xs transition ${
               tourMode
                 ? 'border-[#7be0ff] bg-[#4cc9ff]/15 text-[#cfe6ff]'
                 : 'border-[#4cc9ff]/40 text-[#4cc9ff]/90 hover:bg-[#4cc9ff]/10'
@@ -429,7 +429,7 @@ export function Hud() {
           <button
             type="button"
             onClick={() => setAutoPulse(!autoPulse)}
-            className={`border px-2 py-1 text-[10px] transition ${
+            className={`border px-2 py-1 text-hud-xs transition ${
               autoPulse
                 ? 'border-[#ff8e5a] bg-[#ff8e5a]/15 text-[#ffb59a]'
                 : 'border-[#4cc9ff]/40 text-[#4cc9ff]/90 hover:bg-[#4cc9ff]/10'
@@ -441,7 +441,7 @@ export function Hud() {
           <button
             type="button"
             onClick={toggleMute}
-            className="border border-[#4cc9ff]/40 px-2 py-1 text-[10px] text-[#4cc9ff]/90 hover:bg-[#4cc9ff]/10 transition"
+            className="border border-[#4cc9ff]/40 px-2 py-1 text-hud-xs text-[#4cc9ff]/90 hover:bg-[#4cc9ff]/10 transition"
             aria-pressed={!muted}
           >
             {muted ? '✕ SND' : '◉ SND'}
@@ -459,7 +459,7 @@ export function Hud() {
                 onClick={() => setSignificanceTier(t.id)}
                 title={t.description}
                 aria-pressed={active}
-                className={`px-2 py-[3px] text-[9px] tracking-[0.18em] transition ${
+                className={`px-2 py-[3px] text-hud-2xs tracking-[0.18em] transition ${
                   active
                     ? 'bg-[#4cc9ff]/15 text-[#dfeeff]'
                     : 'text-[#4cc9ff]/55 hover:bg-[#4cc9ff]/8 hover:text-[#cfe6ff]'
@@ -479,7 +479,7 @@ export function Hud() {
       <div className="absolute right-4 top-[12rem] w-[22rem] max-w-[calc(100vw-2rem)] pointer-events-none flex flex-col gap-1.5">
         {anomalies.length > 0 && (
           <>
-            <div className="pointer-events-none flex items-center gap-1.5 text-[10px] tracking-[0.22em] text-[#ffb59a]/90 px-0.5">
+            <div className="pointer-events-none flex items-center gap-1.5 text-hud-xs tracking-[0.22em] text-[#ffb59a]/90 px-0.5">
               <span
                 className="inline-block w-1.5 h-1.5 rounded-full"
                 style={{
@@ -520,7 +520,7 @@ export function Hud() {
                 style={{ animationDelay: `${ai * 60}ms` }}
                 className="hud-panel-in border border-[#ff5a4a]/60 bg-[#02040a]/80 backdrop-blur-sm px-3 py-2 cursor-pointer hover:bg-[#ff5a4a]/8 transition"
               >
-                <div className="flex items-center gap-2 text-[10px] tracking-[0.18em] uppercase">
+                <div className="flex items-center gap-2 text-hud-xs tracking-[0.18em] uppercase">
                   <span
                     className="inline-block w-1.5 h-1.5 rounded-full"
                     style={{
@@ -536,7 +536,7 @@ export function Hud() {
                 {a.driver_titles.slice(0, 2).map((t, i) => (
                   <div
                     key={i}
-                    className="text-[11px] normal-case tracking-normal leading-snug mt-1 opacity-85 line-clamp-2"
+                    className="text-hud-sm normal-case tracking-normal leading-snug mt-1 opacity-85 line-clamp-2"
                   >
                     {t}
                   </div>
@@ -559,7 +559,7 @@ export function Hud() {
                 key={c.id}
                 type="button"
                 onClick={() => toggleCategory(c.id)}
-                className={`flex items-center gap-1.5 text-[10px] tracking-widest px-1.5 py-0.5 transition ${
+                className={`flex items-center gap-1.5 text-hud-xs tracking-widest px-1.5 py-0.5 transition ${
                   off
                     ? 'opacity-35 hover:opacity-65'
                     : 'opacity-100 hover:bg-[#4cc9ff]/8'
@@ -579,7 +579,7 @@ export function Hud() {
             )
           })}
         </div>
-        <div className="opacity-60 text-[10px]">
+        <div className="opacity-60 text-hud-xs">
           DRAG · SCROLL · CLICK A DOT · CLICK CATEGORY TO FILTER
         </div>
       </div>
@@ -601,7 +601,7 @@ export function Hud() {
             type="button"
             aria-label="Close"
             onClick={() => setSelectedEntity(null)}
-            className="absolute top-1 right-1 z-10 w-6 h-6 flex items-center justify-center text-[#4cc9ff]/80 hover:text-[#7be0ff] hover:bg-[#4cc9ff]/10 text-xs"
+            className="absolute top-1 right-1 z-10 w-6 h-6 flex items-center justify-center text-[#4cc9ff]/80 hover:text-[#7be0ff] hover:bg-[#4cc9ff]/10 text-hud-xs"
           >
             ✕
           </button>
@@ -636,7 +636,7 @@ export function Hud() {
             </div>
           )}
           <div className="p-3 overflow-y-auto min-h-0">
-            <div className="text-[10px] opacity-60 tracking-[0.18em] uppercase flex items-center justify-between pr-6">
+            <div className="text-hud-xs opacity-60 tracking-[0.18em] uppercase flex items-center justify-between pr-6">
               <span className="truncate">
                 {selected.sourceOutlet
                   ? `SOURCE · ${selected.sourceOutlet.toUpperCase()}`
@@ -648,16 +648,16 @@ export function Hud() {
                 </span>
               )}
             </div>
-            <div className="text-[13px] normal-case tracking-normal mt-1 font-medium leading-snug text-[#dfeeff]">
+            <div className="text-hud-md normal-case tracking-normal mt-1 font-medium leading-snug text-[#dfeeff]">
               {selected.title ?? selected.id}
             </div>
             {locationLabel(selected.city, selected.countryCode) && (
-              <div className="text-[10px] tracking-[0.18em] mt-2 text-[#7be0ff]/85 flex items-center gap-1.5">
+              <div className="text-hud-xs tracking-[0.18em] mt-2 text-[#7be0ff]/85 flex items-center gap-1.5">
                 <span>◎</span>
                 <span>{locationLabel(selected.city, selected.countryCode)}</span>
                 {selected.geoPrecision === 'country' && (
                   <span
-                    className="ml-2 px-1.5 py-0.5 text-[8px] tracking-[0.2em] border border-[#ffb84c]/40 text-[#ffb84c]/85 rounded-sm"
+                    className="ml-2 px-1.5 py-0.5 text-hud-3xs tracking-[0.2em] border border-[#ffb84c]/40 text-[#ffb84c]/85 rounded-sm"
                     title="Coordinates are a country centroid, not a specific point"
                   >
                     ◌ APPROX
@@ -666,7 +666,7 @@ export function Hud() {
               </div>
             )}
             {selected.summary && (
-              <div className="text-[11px] normal-case tracking-normal mt-2 opacity-80 leading-relaxed">
+              <div className="text-hud-sm normal-case tracking-normal mt-2 opacity-80 leading-relaxed">
                 {selected.summary}
               </div>
             )}
@@ -675,7 +675,7 @@ export function Hud() {
                 href={selected.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-block mt-3 text-[10px] tracking-[0.18em] uppercase text-[#4cc9ff] hover:text-[#7be0ff]"
+                className="inline-block mt-3 text-hud-xs tracking-[0.18em] uppercase text-[#4cc9ff] hover:text-[#7be0ff]"
               >
                 OPEN ARTICLE →
               </a>

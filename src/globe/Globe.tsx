@@ -279,12 +279,12 @@ export function Globe() {
     <>
       <div ref={containerRef} className="absolute inset-0" />
       {!ready && !error && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-[#4cc9ff] text-xs tracking-[0.3em]">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-[#4cc9ff] text-hud-xs tracking-[0.3em]">
           INITIALIZING · {progress}%
         </div>
       )}
       {error && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-[#ff8888] text-xs tracking-[0.2em]">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-[#ff8888] text-hud-xs tracking-[0.2em]">
           ERROR · {error}
         </div>
       )}

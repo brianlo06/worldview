@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+/* Fluid HUD type scale. clamp(min, fluid, max): raises the readable floor
+   (old sizes were 8-13px) AND grows with the viewport so text is comfortable
+   on large desktop monitors. Tune here in one place. Generates text-hud-*. */
+@theme {
+  --text-hud-3xs: clamp(0.625rem, 0.50rem + 0.42vw, 0.875rem); /* was 8px   → ~10-14px */
+  --text-hud-2xs: clamp(0.6875rem, 0.55rem + 0.45vw, 0.95rem); /* was 9px   → ~11-15px */
+  --text-hud-xs:  clamp(0.75rem, 0.60rem + 0.55vw, 1.05rem);   /* was 10px  → ~12-17px */
+  --text-hud-sm:  clamp(0.8125rem, 0.66rem + 0.58vw, 1.125rem);/* was 11px  → ~13-18px */
+  --text-hud-md:  clamp(0.875rem, 0.71rem + 0.62vw, 1.25rem);  /* was 12-13px→ ~14-20px */
+  --text-hud-title: clamp(2rem, 1.2rem + 3.2vw, 3.75rem);      /* was 2.6rem → ~32-60px */
+}
+
 html, body, #root {
   margin: 0;
   padding: 0;

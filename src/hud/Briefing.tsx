@@ -195,7 +195,7 @@ export function Briefing({ onClose }: BriefingProps) {
         className="pointer-events-auto holo-frame border border-[#7be0ff]/40 bg-[#02040a]/85 backdrop-blur-sm px-6 py-3 min-w-[26rem] text-center"
         style={{ boxShadow: '0 0 24px rgba(124,224,255,0.25)' }}
       >
-        <div className="text-[10px] tracking-[0.42em] text-[#4cc9ff]/80 flex items-center justify-center gap-2">
+        <div className="text-hud-xs tracking-[0.42em] text-[#4cc9ff]/80 flex items-center justify-center gap-2">
           <span
             className="inline-block w-1.5 h-1.5 rounded-full"
             style={{
@@ -210,7 +210,7 @@ export function Briefing({ onClose }: BriefingProps) {
         </div>
 
         <div
-          className="mt-1.5 text-[#7be0ff] text-base tracking-[0.32em] tabular-nums leading-tight min-h-[1.4em]"
+          className="mt-1.5 text-[#7be0ff] text-hud-md tracking-[0.32em] tabular-nums leading-tight min-h-[1.4em]"
           style={{ textShadow: '0 0 10px rgba(124,224,255,0.55)' }}
         >
           {phase === 'loading' && 'ACQUIRING SIGNAL'}
@@ -223,7 +223,7 @@ export function Briefing({ onClose }: BriefingProps) {
         </div>
 
         {phase === 'story' && current && (
-          <div className="mt-1 text-[10px] tracking-[0.3em] text-[#cfe6ff]/70 tabular-nums">
+          <div className="mt-1 text-hud-xs tracking-[0.3em] text-[#cfe6ff]/70 tabular-nums">
             {fmtCoord(current.lat, 'N', 'S')} · {fmtCoord(current.lon, 'E', 'W')}
             {current.countryCode ? ` · ${current.countryCode.toUpperCase()}` : ''}
           </div>
@@ -247,7 +247,7 @@ export function Briefing({ onClose }: BriefingProps) {
 
         <button
           onClick={handleAbort}
-          className="pointer-events-auto mt-3 text-[10px] tracking-[0.3em] text-[#ff8f6b]/80 hover:text-[#ffb59a] border border-[#ff8f6b]/30 hover:border-[#ff8f6b]/60 px-3 py-1"
+          className="pointer-events-auto mt-3 text-hud-xs tracking-[0.3em] text-[#ff8f6b]/80 hover:text-[#ffb59a] border border-[#ff8f6b]/30 hover:border-[#ff8f6b]/60 px-3 py-1"
         >
           ◢ ABORT
         </button>

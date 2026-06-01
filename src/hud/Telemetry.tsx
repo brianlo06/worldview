@@ -31,7 +31,7 @@ export function TelemetryReadout() {
   const t = useAppStore((s) => s.cameraTelemetry)
   if (!t) return null
   return (
-    <div className="pointer-events-none text-[#4cc9ff]/55 text-[9px] tracking-[0.18em] tabular-nums leading-relaxed text-center">
+    <div className="pointer-events-none text-[#4cc9ff]/55 text-hud-2xs tracking-[0.18em] tabular-nums leading-relaxed text-center">
       <div>
         LAT <span className="text-[#cfe6ff]/70">{fmtDeg(t.lat)}</span>
         {'   '}LON <span className="text-[#cfe6ff]/70">{fmtDeg(t.lon)}</span>
