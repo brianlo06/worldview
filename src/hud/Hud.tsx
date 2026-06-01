@@ -473,10 +473,11 @@ export function Hud() {
       </div>
 
       {/* Right column: anomaly cards only. Markets live in the top ticker now.
-          top-[12rem] clears the (now-pushed-down) clock + status + button row
-          + tier filter. The list scrolls when it can't fit on-screen, with a
-          fade at the bottom to hint there's more. */}
-      <div className="absolute right-4 top-[12rem] w-[22rem] max-w-[calc(100vw-2rem)] pointer-events-none flex flex-col gap-1.5">
+          The top offset scales with the viewport (clamp) so it always clears
+          the fluid-sized clock + status + button row + tier filter above,
+          rather than a fixed value that breaks when the text scales up. The
+          list scrolls when it can't fit, with a fade hinting there's more. */}
+      <div className="absolute right-4 top-[clamp(13rem,10rem+3vw,16rem)] w-[22rem] max-w-[calc(100vw-2rem)] pointer-events-none flex flex-col gap-1.5">
         {anomalies.length > 0 && (
           <>
             <div className="pointer-events-none flex items-center gap-1.5 text-hud-xs tracking-[0.22em] text-[#ffb59a]/90 px-0.5">
@@ -497,7 +498,7 @@ export function Hud() {
               ref={anomalyListRef}
               className="space-y-1.5 pointer-events-auto overflow-y-auto pr-1"
               style={{
-                maxHeight: 'calc(100vh - 18rem)',
+                maxHeight: 'calc(100vh - 22rem)',
                 maskImage: anomaliesOverflow
                   ? 'linear-gradient(180deg, #000 0, #000 calc(100% - 24px), transparent 100%)'
                   : undefined,
