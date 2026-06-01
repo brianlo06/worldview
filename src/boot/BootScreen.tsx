@@ -107,12 +107,18 @@ export function BootScreen({ onComplete }: { onComplete: () => void }) {
       <BootCorner pos="bottom-6 left-6" sides="border-l border-b" />
       <BootCorner pos="bottom-6 right-6" sides="border-r border-b" />
 
-      {/* Author credit, bottom-center, always visible */}
+      {/* Author credit + contact, bottom-center, always visible */}
       <div
-        className="absolute bottom-7 left-1/2 -translate-x-1/2 text-[#4cc9ff]/50 text-[10px] tracking-[0.4em]"
+        className="absolute bottom-7 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-[#4cc9ff]/50 text-[10px]"
         style={{ textShadow: '0 0 6px rgba(76,201,255,0.35)' }}
       >
-        MADE BY BRINLO
+        <span className="tracking-[0.4em]">MADE BY BRIAN LO</span>
+        <a
+          href="mailto:brianlo200017@gmail.com"
+          className="tracking-[0.15em] text-[#4cc9ff]/40 hover:text-[#7be0ff] transition-colors"
+        >
+          brianlo200017@gmail.com
+        </a>
       </div>
 
       {/* Top label */}
