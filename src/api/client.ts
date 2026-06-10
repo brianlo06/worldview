@@ -68,6 +68,61 @@ function isCategory(s: string): s is Category {
   return VALID_CATEGORIES.has(s as Category)
 }
 
+function ensureCategory(s: string | null): Category {
+  return s && isCategory(s) ? s : 'business'
+}
+
+// If multiple sources cover this story, label e.g. "fox13seattle.com · +18 more"
+function formatSourceLabel(
+  outlet: string | null,
+  eventCount: number,
+): string | undefined {
+  return eventCount > 1
+    ? `${outlet ?? 'source'} · +${eventCount - 1} more`
+    : outlet ?? undefined
+}
+
+// Fields shared by every cluster-shaped API row (cluster list, search hits).
+interface ApiClusterCommon {
+  title: string
+  summary: string | null
+  url: string | null
+  image_url: string | null
+  source_outlet: string | null
+  event_count: number
+  lat: number | null
+  lon: number | null
+  country_code: string | null
+  city: string | null
+  category: string | null
+  importance: number | null
+  breaking: boolean
+  geo_precision: GeoPrecision | null
+}
+
+// Shared cluster-row → dot mapping; callers spread in their extras
+// (occurredAt for clusters, similarity for search hits).
+function clusterCommonToDot(c: ApiClusterCommon, id: string): DotRecord | null {
+  if (c.lat === null || c.lon === null) return null
+  return {
+    id: `cl:${id}`,
+    lat: c.lat,
+    lon: c.lon,
+    title: c.title,
+    summary: c.summary,
+    imageUrl: c.image_url,
+    url: c.url,
+    sourceOutlet: formatSourceLabel(c.source_outlet, c.event_count),
+    importance: c.importance ?? 0.5,
+    category: ensureCategory(c.category),
+    breaking: c.breaking,
+    eventCount: c.event_count,
+    countryCode: c.country_code,
+    city: c.city,
+    geoPrecision: c.geo_precision,
+  }
+}
+
 function toDot(e: ApiEvent): DotRecord {
   // Prefer a non-breaking category as the primary (color); use breaking only as the flag.
   const nonBreaking = e.categories.filter((c) => c !== 'breaking')
@@ -135,32 +190,8 @@ interface ApiCluster {
 }
 
 function clusterToDot(c: ApiCluster): DotRecord | null {
-  if (c.lat === null || c.lon === null) return null
-  const category =
-    c.category && isCategory(c.category) ? c.category : 'business'
-  // If multiple sources cover this story, label e.g. "fox13seattle.com · +18 more"
-  const sourceLabel =
-    c.event_count > 1
-      ? `${c.source_outlet ?? 'source'} · +${c.event_count - 1} more`
-      : c.source_outlet ?? undefined
-  return {
-    id: `cl:${c.id}`,
-    lat: c.lat,
-    lon: c.lon,
-    title: c.title,
-    summary: c.summary,
-    imageUrl: c.image_url,
-    url: c.url,
-    sourceOutlet: sourceLabel,
-    importance: c.importance ?? 0.5,
-    category,
-    breaking: c.breaking,
-    occurredAt: c.last_seen,
-    eventCount: c.event_count,
-    countryCode: c.country_code,
-    city: c.city,
-    geoPrecision: c.geo_precision,
-  }
+  const dot = clusterCommonToDot(c, c.id)
+  return dot && { ...dot, occurredAt: c.last_seen }
 }
 
 export interface ApiAnomaly {
@@ -230,31 +261,9 @@ export async function searchClusters(
   const results = (await res.json()) as ApiSearchResult[]
   const hits: SearchHit[] = []
   for (const r of results) {
-    if (r.lat === null || r.lon === null) continue
-    const category =
-      r.category && isCategory(r.category) ? r.category : 'business'
-    const sourceLabel =
-      r.event_count > 1
-        ? `${r.source_outlet ?? 'source'} · +${r.event_count - 1} more`
-        : r.source_outlet ?? undefined
-    hits.push({
-      id: `cl:${r.cluster_id}`,
-      lat: r.lat,
-      lon: r.lon,
-      title: r.title,
-      summary: r.summary,
-      imageUrl: r.image_url,
-      url: r.url,
-      sourceOutlet: sourceLabel,
-      importance: r.importance ?? 0.5,
-      category,
-      breaking: r.breaking,
-      eventCount: r.event_count,
-      similarity: r.similarity,
-      countryCode: r.country_code,
-      city: r.city,
-      geoPrecision: r.geo_precision,
-    })
+    const dot = clusterCommonToDot(r, r.cluster_id)
+    if (dot === null) continue
+    hits.push({ ...dot, similarity: r.similarity })
   }
   return hits
 }
@@ -480,7 +489,7 @@ export async function fetchBriefing(signal?: AbortSignal): Promise<BriefingScrip
   const stories: BriefingStory[] = []
   for (const s of j.stories ?? []) {
     if (s.lat === null || s.lon === null) continue
-    const category = s.category && isCategory(s.category) ? s.category : 'business'
+    const category = ensureCategory(s.category)
     stories.push({
       narration: s.narration,
       dot: {
