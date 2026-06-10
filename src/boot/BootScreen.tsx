@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { audio } from '../audio/audio'
 import { speak } from '../audio/voice'
 
@@ -77,12 +77,26 @@ export function BootScreen({ onComplete }: { onComplete: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allDone])
 
+  // Boot-screen-only type scale: drives off viewport HEIGHT so the whole
+  // splash (header + 18 boot lines + footer + credit) always fits without
+  // scrolling, however short the window. Scoped here via CSS-variable
+  // overrides — the globe HUD keeps the shared width-based scale from :root.
+  const compactType: CSSProperties = {
+    fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace',
+    ['--text-hud-3xs' as string]: 'clamp(0.5rem, 1.3vh, 0.8rem)',
+    ['--text-hud-2xs' as string]: 'clamp(0.54rem, 1.4vh, 0.85rem)',
+    ['--text-hud-xs' as string]: 'clamp(0.58rem, 1.5vh, 0.95rem)',
+    ['--text-hud-sm' as string]: 'clamp(0.56rem, 1.7vh, 1.0rem)',
+    ['--text-hud-md' as string]: 'clamp(0.68rem, 1.9vh, 1.1rem)',
+    ['--text-hud-title' as string]: 'clamp(1.3rem, 5.5vh, 3.2rem)',
+  }
+
   return (
     <div
-      className={`fixed inset-0 z-[1000] bg-[#02040a] flex flex-col items-center justify-center transition-opacity duration-500 ${
+      className={`fixed inset-0 z-[1000] bg-[#02040a] transition-opacity duration-500 ${
         fading ? 'opacity-0' : 'opacity-100'
       }`}
-      style={{ fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace' }}
+      style={compactType}
     >
       {/* Faint horizontal scan-line texture across the whole screen */}
       <div
@@ -107,73 +121,84 @@ export function BootScreen({ onComplete }: { onComplete: () => void }) {
       <BootCorner pos="bottom-6 left-6" sides="border-l border-b" />
       <BootCorner pos="bottom-6 right-6" sides="border-r border-b" />
 
-      {/* Author credit + contact, bottom-center, always visible */}
-      <div
-        className="absolute bottom-7 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-[#4cc9ff]/50 text-hud-xs"
-        style={{ textShadow: '0 0 6px rgba(76,201,255,0.35)' }}
-      >
-        <span className="tracking-[0.4em]">MADE BY BRIAN LO</span>
-        <a
-          href="mailto:brianlo200017@gmail.com"
-          className="tracking-[0.15em] text-[#4cc9ff]/40 hover:text-[#7be0ff] transition-colors"
-        >
-          brianlo200017@gmail.com
-        </a>
-      </div>
-
-      {/* Top label */}
-      <div className="absolute top-7 left-1/2 -translate-x-1/2 text-[#4cc9ff]/60 text-hud-xs tracking-[0.3em]">
-        SYSTEM INITIALIZATION
-      </div>
+      {/* Timestamp stays in the top-right corner */}
       <div className="absolute top-7 right-12 text-[#4cc9ff]/40 text-hud-xs tracking-widest tabular-nums">
         {nowStamp()}
       </div>
 
-      {/* Title */}
-      <div
-        className="text-[#7be0ff] text-hud-title tracking-[0.45em] mb-2 leading-none"
-        style={{ textShadow: '0 0 14px rgba(124,224,255,0.7), 0 0 28px rgba(76,201,255,0.4)' }}
-      >
-        WORLDVIEW
-      </div>
-      <div className="text-[#4cc9ff]/60 text-hud-xs tracking-[0.45em] mb-12">
-        SITUATIONAL AWARENESS // v0.1
-      </div>
-
-      {/* Boot log */}
-      <div className="text-hud-sm w-[42rem] max-w-[calc(100vw-4rem)] space-y-0.5 relative z-10">
-        {BOOT_LINES.slice(0, linesShown).map((line, i) => (
-          <div key={i} className="flex items-baseline">
-            <span className="text-[#9affb2]" style={{ textShadow: '0 0 6px rgba(154,255,178,0.5)' }}>
-              [OK]
-            </span>
-            <span className="ml-2 text-[#cfe6ff] whitespace-nowrap">{line.label}</span>
-            <span className="text-[#4cc9ff]/30 mx-1.5 truncate">{dotsFor(line.label)}</span>
-            <span
-              className="text-[#7be0ff] ml-auto whitespace-nowrap tabular-nums"
-              style={{ textShadow: '0 0 6px rgba(124,224,255,0.5)' }}
-            >
-              {line.status}
-            </span>
+      {/* Scrollable, vertically-centered content. min-h-full keeps it centered
+          when it fits and lets it scroll (never overlap) when it doesn't —
+          everything below is in normal flow, so the top label and author credit
+          can't collide with the boot log on a short viewport. */}
+      <div className="absolute inset-0 overflow-y-auto">
+        <div className="min-h-full flex flex-col items-center justify-center px-4 py-[2.5vh] relative z-10">
+          {/* Top label */}
+          <div className="text-[#4cc9ff]/60 text-hud-xs tracking-[0.3em] mb-[1.5vh]">
+            SYSTEM INITIALIZATION
           </div>
-        ))}
-      </div>
 
-      {/* Reserved area below so the layout doesn't jump when "all systems nominal" appears */}
-      <div className="mt-12 h-16 flex flex-col items-center">
-        {allDone && (
-          <>
-            <div
-              className="text-[#9affb2] text-hud-md tracking-[0.32em]"
-              style={{ textShadow: '0 0 10px rgba(154,255,178,0.7)' }}
+          {/* Title */}
+          <div
+            className="text-[#7be0ff] text-hud-title tracking-[0.45em] mb-2 leading-none"
+            style={{ textShadow: '0 0 14px rgba(124,224,255,0.7), 0 0 28px rgba(76,201,255,0.4)' }}
+          >
+            WORLDVIEW
+          </div>
+          <div className="text-[#4cc9ff]/60 text-hud-xs tracking-[0.45em] mb-[2vh]">
+            SITUATIONAL AWARENESS // v0.1
+          </div>
+
+          {/* Boot log */}
+          <div className="text-hud-sm w-[42rem] max-w-[calc(100vw-4rem)] space-y-0.5">
+            {BOOT_LINES.slice(0, linesShown).map((line, i) => (
+              <div key={i} className="flex items-baseline">
+                <span className="text-[#9affb2]" style={{ textShadow: '0 0 6px rgba(154,255,178,0.5)' }}>
+                  [OK]
+                </span>
+                <span className="ml-2 text-[#cfe6ff] whitespace-nowrap">{line.label}</span>
+                <span className="text-[#4cc9ff]/30 mx-1.5 truncate">{dotsFor(line.label)}</span>
+                <span
+                  className="text-[#7be0ff] ml-auto whitespace-nowrap tabular-nums"
+                  style={{ textShadow: '0 0 6px rgba(124,224,255,0.5)' }}
+                >
+                  {line.status}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Reserved area below so the layout doesn't jump when "all systems nominal" appears */}
+          <div className="mt-[2vh] h-[7vh] flex flex-col items-center justify-start">
+            {allDone && (
+              <>
+                <div
+                  className="text-[#9affb2] text-hud-md tracking-[0.32em]"
+                  style={{ textShadow: '0 0 10px rgba(154,255,178,0.7)' }}
+                >
+                  ◉ ALL SYSTEMS NOMINAL
+                </div>
+                <div className="text-[#4cc9ff]/70 text-hud-xs tracking-[0.3em] mt-4 animate-pulse">
+                  CLICK OR PRESS ANY KEY TO CONTINUE
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Author credit + contact, in normal flow at the bottom of the column
+              so it can never be overlapped by the boot log above it. */}
+          <div
+            className="mt-[3vh] flex flex-col items-center gap-1.5 text-[#4cc9ff]/50 text-hud-xs"
+            style={{ textShadow: '0 0 6px rgba(76,201,255,0.35)' }}
+          >
+            <span className="tracking-[0.4em]">MADE BY BRIAN LO</span>
+            <a
+              href="mailto:brianlo200017@gmail.com"
+              className="tracking-[0.15em] text-[#4cc9ff]/40 hover:text-[#7be0ff] transition-colors"
             >
-              ◉ ALL SYSTEMS NOMINAL
-            </div>
-            <div className="text-[#4cc9ff]/70 text-hud-xs tracking-[0.3em] mt-4 animate-pulse">
-              CLICK OR PRESS ANY KEY TO CONTINUE
-            </div>
-          </>
-        )}
+              brianlo200017@gmail.com
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   )

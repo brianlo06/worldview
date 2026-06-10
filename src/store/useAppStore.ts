@@ -24,6 +24,9 @@ export interface SelectedEntity {
   countryCode?: string | null
   city?: string | null
   geoPrecision?: 'point' | 'city' | 'state' | 'country' | null
+  // Coordinates of the selected entity — used by the share card + deep link.
+  lat?: number | null
+  lon?: number | null
 }
 
 interface AppState {

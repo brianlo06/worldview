@@ -6,7 +6,7 @@
 // a duration, and we sleep() between phases for breathing room.
 
 import { useEffect, useRef, useState } from 'react'
-import { fetchClusters } from '../api/client'
+import { fetchBriefing, fetchClusters, type BriefingScript } from '../api/client'
 import { useAppStore } from '../store/useAppStore'
 import { audio } from '../audio/audio'
 import { speak, silence } from '../audio/voice'
@@ -34,25 +34,51 @@ function locationLabel(d: DotRecord): string {
   return (c ?? 'UNKNOWN REGION').toUpperCase()
 }
 
-function firstSentence(s: string | null | undefined, maxChars = 220): string {
+// Primary narration comes from the server (POST /briefing), which rewrites the
+// stories into conversational speech. The helpers below are only used by the
+// client-side fallback that kicks in if that endpoint is unreachable — a
+// lightweight version of the server's clean-up so playback still works.
+
+// Strip feed codes / markup / separator runs so TTS doesn't read them aloud.
+function cleanSpeech(s: string | null | undefined, maxChars = 220): string {
   if (!s) return ''
-  // Trim to first sentence (or maxChars), strip newlines.
-  const cleaned = s.replace(/\s+/g, ' ').trim()
-  const m = cleaned.match(/^.{20,}?[.!?](?=\s|$)/)
-  const sentence = m ? m[0] : cleaned.slice(0, maxChars)
+  let t = s.replace(/\s+/g, ' ').trim()
+  t = t.replace(/^[A-Z]{4,}\d*\b[\s:.-]*/, '') // leading wire code, e.g. "SVRTOP "
+  t = t.replace(/\s*(?:\.{2,}|…)+\s*/g, ', ') // dotted separators
+  t = t.replace(/\s*\*+\s*/g, ' ') // asterisk bullets
+  t = t.replace(/\s+/g, ' ').replace(/^[\s,.]+|[\s,]+$/g, '')
+  const m = t.match(/^.{20,}?[.!?](?=\s|$)/)
+  const sentence = m ? m[0] : t.slice(0, maxChars)
   return sentence.length > maxChars ? sentence.slice(0, maxChars).trim() + '…' : sentence
 }
 
-function composeScript(index: number, total: number, d: DotRecord): string {
+function fallbackNarration(d: DotRecord): string {
   const where = d.city
-    ? `In ${d.city}`
+    ? `In ${d.city}.`
     : d.countryCode
-      ? `In ${countryName(d.countryCode) ?? 'an unknown region'}`
-      : null
-  const ord = `Story ${index + 1} of ${total}.`
-  const hdr = where ? `${where}.` : ''
-  const summary = firstSentence(d.summary)
-  return [ord, hdr, d.title + '.', summary].filter(Boolean).join(' ')
+      ? `In ${countryName(d.countryCode) ?? 'an unknown region'}.`
+      : ''
+  const title = cleanSpeech(d.title, 160)
+  const hdr = title && !/[.!?]$/.test(title) ? `${title}.` : title
+  const summary = cleanSpeech(d.summary)
+  const body = summary && summary.toLowerCase() !== title.toLowerCase() ? summary : ''
+  return [where, hdr, body].filter(Boolean).join(' ')
+}
+
+// Client-side fallback: if POST /briefing is unreachable, fall back to the old
+// behavior — fetch clusters directly and build a cleaned-up script locally.
+async function clientFallbackScript(signal: AbortSignal): Promise<BriefingScript> {
+  const all = await fetchClusters({ hours: 24, minEvents: 2, limit: 200, signal })
+  const dots = all
+    .filter((d) => Number.isFinite(d.lat) && Number.isFinite(d.lon))
+    .sort((a, b) => (b.importance ?? 0) - (a.importance ?? 0))
+    .slice(0, STORY_COUNT)
+  return {
+    intro: `Here are the top ${dots.length} stories at this hour.`,
+    stories: dots.map((d) => ({ dot: d, narration: fallbackNarration(d) })),
+    outro: 'That’s your briefing.',
+    source: 'fallback',
+  }
 }
 
 const sleep = (ms: number, signal: AbortSignal): Promise<void> =>
@@ -79,35 +105,32 @@ export function Briefing({ onClose }: BriefingProps) {
     const aborted = () => ctrl.signal.aborted
 
     async function run() {
-      let top: DotRecord[]
+      // Primary: server-narrated briefing. Fall back to a local script built
+      // from /clusters only if the briefing endpoint itself is unreachable.
+      let script: BriefingScript
       try {
-        const all = await fetchClusters({
-          hours: 24,
-          minEvents: 2,
-          limit: 200,
-          signal: ctrl.signal,
-        })
-        // Sort by importance, take top N with a valid location.
-        top = all
-          .filter((d) => Number.isFinite(d.lat) && Number.isFinite(d.lon))
-          .sort((a, b) => (b.importance ?? 0) - (a.importance ?? 0))
-          .slice(0, STORY_COUNT)
+        script = await fetchBriefing(ctrl.signal)
       } catch {
-        if (!aborted()) setPhase('error')
-        return
+        try {
+          script = await clientFallbackScript(ctrl.signal)
+        } catch {
+          if (!aborted()) setPhase('error')
+          return
+        }
       }
       if (aborted()) return
-      if (top.length === 0) {
+      if (script.stories.length === 0) {
         setPhase('error')
         return
       }
-      setStories(top)
+      const dots = script.stories.map((s) => s.dot)
+      setStories(dots)
       setPhase('intro')
 
       // Intro
       audio.whoosh(0.5)
       await speak(
-        `Good evening. Top ${top.length} stories at this hour.`,
+        script.intro || `Here are the top ${dots.length} stories at this hour.`,
         { rate: 0.95 },
       )
       if (aborted()) return
@@ -116,12 +139,13 @@ export function Briefing({ onClose }: BriefingProps) {
 
       // Stories
       setPhase('story')
-      for (let i = 0; i < top.length; i++) {
+      for (let i = 0; i < script.stories.length; i++) {
         if (aborted()) return
-        const d = top[i]
+        const { dot: d, narration } = script.stories[i]
         setIndex(i)
 
-        // Fly the globe + push the story into the selection card.
+        // Fly the globe + push the story into the selection card. The card
+        // still shows the cluster's own source text (spoken-only scope).
         setFlyToTarget({ lat: d.lat, lon: d.lon, id: d.id, durationMs: FLY_DURATION_MS })
         setSelectedEntity({
           type: 'cluster',
@@ -145,7 +169,7 @@ export function Briefing({ onClose }: BriefingProps) {
         await sleep(250, ctrl.signal)
         if (aborted()) return
 
-        await speak(composeScript(i, top.length, d), { rate: 0.95 })
+        await speak(narration || fallbackNarration(d), { rate: 0.95 })
         if (aborted()) return
         await sleep(POST_SPEECH_PAUSE_MS, ctrl.signal)
       }
@@ -154,7 +178,7 @@ export function Briefing({ onClose }: BriefingProps) {
       if (aborted()) return
       setPhase('outro')
       audio.whoosh(0.4)
-      await speak('End of briefing.', { rate: 0.95 })
+      await speak(script.outro || 'End of briefing.', { rate: 0.95 })
       if (aborted()) return
       setSelectedEntity(null)
       setPhase('done')

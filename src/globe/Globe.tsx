@@ -133,6 +133,8 @@ export function Globe() {
               countryCode: rec.countryCode,
               city: rec.city,
               geoPrecision: rec.geoPrecision,
+              lat: rec.lat,
+              lon: rec.lon,
             })
           } else {
             setSelectedEntity(null)

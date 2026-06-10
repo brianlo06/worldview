@@ -259,6 +259,151 @@ export async function searchClusters(
   return hits
 }
 
+// --- Ask the globe -------------------------------------------------------- //
+
+export interface AskResultItem {
+  id: string | null
+  title: string
+  summary: string | null
+  lat: number | null
+  lon: number | null
+  place: string | null
+  sourceOutlet: string | null
+  imageUrl: string | null
+  countryCode: string | null
+  city: string | null
+}
+
+export interface AskAnswer {
+  answer: string
+  place: string | null
+  flyLat: number | null
+  flyLon: number | null
+  clusterRefs: string[]
+  results: AskResultItem[]
+  stats: Record<string, unknown>
+  source: string // 'live' | 'cache' | 'prebaked' | 'degraded'
+}
+
+export async function askGlobe(
+  question: string,
+  opts: { lat?: number; lon?: number; signal?: AbortSignal } = {},
+): Promise<AskAnswer> {
+  const res = await timedFetch(
+    `${API_BASE}/ask`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: opts.signal,
+      body: JSON.stringify({
+        question,
+        lat: opts.lat ?? null,
+        lon: opts.lon ?? null,
+      }),
+    },
+    // /ask may run an embedding + a synthesis call on a cold cache.
+    15000,
+  )
+  if (!res.ok) throw new Error(`API ${res.status} ${res.statusText}`)
+  interface ApiAskResult {
+    id: string | null
+    title: string
+    summary: string | null
+    lat: number | null
+    lon: number | null
+    place: string | null
+    source_outlet: string | null
+    image_url: string | null
+    country_code: string | null
+    city: string | null
+  }
+  const j = (await res.json()) as {
+    answer: string
+    place: string | null
+    fly_lat: number | null
+    fly_lon: number | null
+    cluster_refs: string[]
+    results: ApiAskResult[]
+    stats: Record<string, unknown>
+    source: string
+  }
+  return {
+    answer: j.answer,
+    place: j.place ?? null,
+    flyLat: j.fly_lat ?? null,
+    flyLon: j.fly_lon ?? null,
+    clusterRefs: j.cluster_refs ?? [],
+    results: (j.results ?? []).map((r) => ({
+      id: r.id,
+      title: r.title,
+      summary: r.summary,
+      lat: r.lat,
+      lon: r.lon,
+      place: r.place,
+      sourceOutlet: r.source_outlet,
+      imageUrl: r.image_url,
+      countryCode: r.country_code,
+      city: r.city,
+    })),
+    stats: j.stats ?? {},
+    source: j.source ?? 'live',
+  }
+}
+
+// --- Share ----------------------------------------------------------------- //
+
+export interface ShareCreated {
+  id: string
+  url: string
+}
+
+export async function createShare(payload: {
+  kind: 'ask' | 'city' | 'cluster' | 'view'
+  params?: Record<string, string>
+  title?: string | null
+  place?: string | null
+  question?: string | null
+  answer?: string | null
+  flyLat?: number | null
+  flyLon?: number | null
+  stats?: Record<string, unknown>
+}): Promise<ShareCreated> {
+  const res = await timedFetch(`${API_BASE}/share`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      kind: payload.kind,
+      params: payload.params ?? {},
+      title: payload.title ?? null,
+      place: payload.place ?? null,
+      question: payload.question ?? null,
+      answer: payload.answer ?? null,
+      fly_lat: payload.flyLat ?? null,
+      fly_lon: payload.flyLon ?? null,
+      stats: payload.stats ?? {},
+    }),
+  })
+  if (!res.ok) throw new Error(`API ${res.status} ${res.statusText}`)
+  const j = (await res.json()) as { id: string; url: string }
+  return { id: j.id, url: j.url }
+}
+
+// Fetch a single cluster (for ?cluster=<id> deep-link hydration). Returns a
+// DotRecord-shaped value or null if missing/stale.
+export async function fetchCluster(
+  id: string,
+  signal?: AbortSignal,
+): Promise<DotRecord | null> {
+  try {
+    const res = await timedFetch(`${API_BASE}/clusters/${id}`, { signal })
+    if (!res.ok) return null
+    const c = (await res.json()) as ApiCluster
+    return clusterToDot(c)
+  } catch {
+    return null
+  }
+}
+
 export async function fetchClusters(opts: {
   hours?: number
   minEvents?: number
@@ -278,6 +423,89 @@ export async function fetchClusters(opts: {
   return clusters
     .map(clusterToDot)
     .filter((d): d is DotRecord => d !== null)
+}
+
+// --- Top-stories briefing -------------------------------------------------- //
+
+interface ApiBriefingStory {
+  cluster_id: string
+  narration: string
+  title: string
+  summary: string | null
+  url: string | null
+  image_url: string | null
+  source_outlet: string | null
+  lat: number | null
+  lon: number | null
+  country_code: string | null
+  city: string | null
+  category: string | null
+  occurred_at: string | null
+}
+
+interface ApiBriefing {
+  intro: string
+  stories: ApiBriefingStory[]
+  outro: string
+  source: string
+}
+
+// A briefing story = the spoken narration plus a DotRecord the briefing can
+// fly to and push into the selection card (same shape clusters use elsewhere).
+export interface BriefingStory {
+  dot: DotRecord
+  narration: string
+}
+
+export interface BriefingScript {
+  intro: string
+  stories: BriefingStory[]
+  outro: string
+  source: 'llm' | 'fallback'
+}
+
+// Fetch the server-narrated top-stories briefing. The server always returns a
+// playable script (it degrades to cleaned-up text internally rather than
+// erroring), so a thrown error here means the endpoint itself was unreachable.
+export async function fetchBriefing(signal?: AbortSignal): Promise<BriefingScript> {
+  // Allow longer than the default: the server may spend up to its LLM timeout
+  // (~8s) synthesizing the script before responding.
+  const res = await timedFetch(
+    `${API_BASE}/briefing`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}', signal },
+    12000,
+  )
+  if (!res.ok) throw new Error(`API ${res.status} ${res.statusText}`)
+  const j = (await res.json()) as ApiBriefing
+  const stories: BriefingStory[] = []
+  for (const s of j.stories ?? []) {
+    if (s.lat === null || s.lon === null) continue
+    const category = s.category && isCategory(s.category) ? s.category : 'business'
+    stories.push({
+      narration: s.narration,
+      dot: {
+        id: `cl:${s.cluster_id}`,
+        lat: s.lat,
+        lon: s.lon,
+        title: s.title,
+        summary: s.summary,
+        imageUrl: s.image_url,
+        url: s.url,
+        sourceOutlet: s.source_outlet ?? undefined,
+        importance: 0.5,
+        category,
+        occurredAt: s.occurred_at,
+        countryCode: s.country_code,
+        city: s.city,
+      },
+    })
+  }
+  return {
+    intro: j.intro ?? '',
+    stories,
+    outro: j.outro ?? '',
+    source: j.source === 'llm' ? 'llm' : 'fallback',
+  }
 }
 
 export async function apiHealth(signal?: AbortSignal): Promise<boolean> {

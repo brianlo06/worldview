@@ -2,14 +2,15 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAppStore } from '../store/useAppStore'
 import { audio } from '../audio/audio'
 import { speak } from '../audio/voice'
-import { searchClusters } from '../api/client'
-import { CATEGORIES, CATEGORY_LOOKUP, DEFAULT_CATEGORY } from '../globe/categories'
+import { CATEGORIES } from '../globe/categories'
 import { countryName as countryNameFromCode, locationLabel } from '../globe/countries'
 import type { DotRecord } from '../globe/dots'
 import { TIERS } from '../globe/tiers'
 import { MarketsPanel } from './MarketsPanel'
 import { CenterCrosshair, TelemetryReadout } from './Telemetry'
 import { Briefing } from './Briefing'
+import { Ask } from './Ask'
+import { ShareButton } from './ShareButton'
 
 const SELECTION_TOP_OFFSET = '5.5rem'
 const BREAKING_COUNT = 6
@@ -71,14 +72,6 @@ export function Hud() {
   const toggleCategory = useAppStore((s) => s.toggleCategory)
   const significanceTier = useAppStore((s) => s.significanceTier)
   const setSignificanceTier = useAppStore((s) => s.setSignificanceTier)
-  const searchQuery = useAppStore((s) => s.searchQuery)
-  const setSearchQuery = useAppStore((s) => s.setSearchQuery)
-  const setSearchResults = useAppStore((s) => s.setSearchResults)
-  const setSearchStatus = useAppStore((s) => s.setSearchStatus)
-  const searchStatus = useAppStore((s) => s.searchStatus)
-  const searchResults = useAppStore((s) => s.searchResults)
-  const clearSearch = useAppStore((s) => s.clearSearch)
-  const searchAbortRef = useRef<AbortController | null>(null)
 
   const breakingItems = useMemo<DotRecord[]>(() => {
     return [...dots]
@@ -112,57 +105,14 @@ export function Hud() {
       countryCode: d.countryCode,
       city: d.city,
       geoPrecision: d.geoPrecision,
+      lat: d.lat,
+      lon: d.lon,
     })
     setFlyToTarget({ lat: d.lat, lon: d.lon, id: d.id })
     // JARVIS announces the destination (city / country only — title would be too noisy)
     const place =
       [d.city, countryNameFromCode(d.countryCode)].filter(Boolean).join(', ')
     if (place) speak(place)
-  }
-
-  async function runSearch() {
-    const q = searchQuery.trim()
-    if (!q) {
-      clearSearch()
-      return
-    }
-    searchAbortRef.current?.abort()
-    const controller = new AbortController()
-    searchAbortRef.current = controller
-    setSearchStatus('pending')
-    try {
-      const hits = await searchClusters(q, { signal: controller.signal })
-      if (controller.signal.aborted) return
-      setSearchResults(hits)
-      setSearchStatus('idle')
-      if (hits.length > 0) {
-        audio.whoosh(0.3)
-        const top = hits[0]
-        setFlyToTarget({ lat: top.lat, lon: top.lon, id: top.id })
-        speak(
-          hits.length === 1
-            ? 'One result.'
-            : `${hits.length} results.`
-        )
-      } else {
-        speak('No matches found.')
-      }
-    } catch (e) {
-      if (controller.signal.aborted) return
-      console.warn('search failed', e)
-      setSearchStatus('error')
-    }
-  }
-
-  function onSearchKey(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      void runSearch()
-    } else if (e.key === 'Escape') {
-      e.preventDefault()
-      searchAbortRef.current?.abort()
-      clearSearch()
-    }
   }
 
   useEffect(() => {
@@ -175,8 +125,6 @@ export function Hud() {
     audio.setMuted(next)
     setMuted(next)
   }
-
-  const hasSearchResults = searchResults !== null
 
   return (
     <div className="pointer-events-none absolute inset-0 text-hud-sm tracking-widest uppercase">
@@ -210,85 +158,19 @@ export function Hud() {
         </div>
       )}
 
-      {/* Top-center: semantic search (sits below ticker; pushed further
-          when the offline banner is also showing) */}
+      {/* Top-center: ASK THE GLOBE. Anchored to CENTER WITHIN THE GAP between
+          the left column (WORLDVIEW/breaking, ~26rem) and the right controls
+          (clusters/briefing/tour…, ~33rem) so the answer card can't overlap
+          either — screen-centering would collide with the controls. On narrow
+          desktops the panel shrinks to the gap; on wide ones it caps at 34rem. */}
       <div
-        className={`absolute left-1/2 -translate-x-1/2 w-[30rem] max-w-[calc(100vw-14rem)] pointer-events-auto ${
+        className={`absolute left-[26rem] right-[33rem] flex justify-center ${
           apiStatus === 'offline' ? 'top-[5.5rem]' : 'top-[2.25rem]'
         }`}
       >
-        <div
-          className={`flex items-center gap-2 border bg-[#02040a]/75 backdrop-blur-sm px-3 py-2 transition ${
-            hasSearchResults
-              ? 'border-[#7be0ff]/70'
-              : 'border-[#4cc9ff]/40 focus-within:border-[#7be0ff]/70'
-          }`}
-        >
-          <span className="text-hud-md opacity-50">⌕</span>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={onSearchKey}
-            placeholder="SEARCH STORIES   ·   try: trade tensions in asia"
-            className="flex-1 bg-transparent text-hud-md tracking-wide outline-none text-[#cfe6ff] placeholder:text-[#4cc9ff]/35 normal-case"
-            spellCheck={false}
-            autoComplete="off"
-          />
-          {searchStatus === 'pending' && (
-            <span className="text-hud-xs opacity-60">…</span>
-          )}
-          {hasSearchResults && (
-            <button
-              type="button"
-              onClick={clearSearch}
-              className="text-hud-xs opacity-60 hover:opacity-100"
-            >
-              CLEAR
-            </button>
-          )}
+        <div className="w-full max-w-[34rem]">
+          <Ask />
         </div>
-        {hasSearchResults && (
-          <div className="mt-2 border border-[#4cc9ff]/30 bg-[#02040a]/80 backdrop-blur-sm max-h-[50vh] overflow-y-auto pointer-events-auto">
-            {searchResults!.length === 0 ? (
-              <div className="px-3 py-3 text-hud-sm opacity-60">NO MATCHES</div>
-            ) : (
-              <ul>
-                {searchResults!.slice(0, 12).map((r, i) => {
-                  const def = r.category
-                    ? CATEGORY_LOOKUP[r.category]
-                    : CATEGORY_LOOKUP[DEFAULT_CATEGORY]
-                  return (
-                    <li
-                      key={r.id}
-                      onClick={() => onBreakingClick(r)}
-                      style={{ animationDelay: `${i * 30}ms` }}
-                      className="hud-row-in group flex items-start gap-2 px-3 py-2 cursor-pointer border-b border-[#4cc9ff]/10 last:border-b-0 hover:bg-[#4cc9ff]/6"
-                    >
-                      <span
-                        className="inline-block w-1.5 h-1.5 rounded-full mt-[6px] flex-shrink-0"
-                        style={{
-                          background: def.color,
-                          boxShadow: `0 0 5px ${def.color}90`,
-                        }}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="text-hud-sm normal-case tracking-normal leading-snug text-[#dfeeff] line-clamp-2">
-                          {r.title}
-                        </div>
-                        <div className="text-hud-2xs opacity-50 normal-case tracking-wide mt-0.5 flex items-center gap-2">
-                          <span>{r.sourceOutlet ?? '—'}</span>
-                          <span className="opacity-60">·</span>
-                          <span>sim {(r.similarity ?? 0).toFixed(2)}</span>
-                        </div>
-                      </div>
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Bottom-center: camera telemetry */}
@@ -317,7 +199,7 @@ export function Hud() {
             </span>
           </div>
           {breakingItems.length > 0 ? (
-            <ul className="mt-2 space-y-1 pointer-events-auto max-h-[calc(100vh-17rem)] overflow-y-auto pr-1">
+            <ul className="mt-2 space-y-1 pointer-events-auto max-h-[calc(100vh-21rem)] overflow-y-auto pr-1">
               {breakingItems.map((b, i) => {
                 const isSelected = selected?.id === b.id
                 return (
@@ -550,8 +432,11 @@ export function Hud() {
         )}
       </div>
 
-      {/* Bottom-left: category legend (interactive toggles) + control hint */}
-      <div className="absolute bottom-4 left-4 text-[#4cc9ff]/70 space-y-2 pointer-events-auto">
+      {/* Bottom-left: category legend (interactive toggles) + control hint.
+          Width is capped to stay clear of the centered telemetry readout at the
+          bottom edge — without this, on a wide-but-short viewport the legend +
+          hint stretch across the middle and overlap it. */}
+      <div className="absolute bottom-4 left-4 text-[#4cc9ff]/70 space-y-2 pointer-events-auto max-w-[calc(50vw-11rem)]">
         <div className="flex flex-wrap gap-x-2 gap-y-1 max-w-md">
           {CATEGORIES.map((c) => {
             const off = disabledCategories.has(c.id)
@@ -581,7 +466,7 @@ export function Hud() {
           })}
         </div>
         <div className="opacity-60 text-hud-xs">
-          DRAG · SCROLL · CLICK A DOT · CLICK CATEGORY TO FILTER
+          DRAG · SCROLL · CLICK A DOT
         </div>
       </div>
 
@@ -671,16 +556,40 @@ export function Hud() {
                 {selected.summary}
               </div>
             )}
-            {selected.url && (
-              <a
-                href={selected.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block mt-3 text-hud-xs tracking-[0.18em] uppercase text-[#4cc9ff] hover:text-[#7be0ff]"
-              >
-                OPEN ARTICLE →
-              </a>
-            )}
+            <div className="mt-3 flex items-center gap-3 flex-wrap">
+              {selected.url && (
+                <a
+                  href={selected.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-hud-xs tracking-[0.18em] uppercase text-[#4cc9ff] hover:text-[#7be0ff]"
+                >
+                  OPEN ARTICLE →
+                </a>
+              )}
+              {/* Share this exact event — any clicked dot is shareable */}
+              <ShareButton
+                build={() => ({
+                  kind: 'cluster',
+                  params: ((): Record<string, string> => {
+                    if (selected.id.startsWith('cl:'))
+                      return { cluster: selected.id.replace(/^cl:/, '') }
+                    if (selected.lat != null && selected.lon != null)
+                      return { focus: `${selected.lat},${selected.lon}` }
+                    return {}
+                  })(),
+                  title: selected.title ?? null,
+                  place:
+                    locationLabel(selected.city, selected.countryCode) ||
+                    selected.city ||
+                    null,
+                  answer: selected.summary ?? null,
+                  flyLat: selected.lat ?? null,
+                  flyLon: selected.lon ?? null,
+                  stats: {},
+                })}
+              />
+            </div>
           </div>
         </div>
       )}
