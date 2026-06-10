@@ -4,12 +4,7 @@ import { audio } from '../audio/audio'
 import { speak } from '../audio/voice'
 import { countryName as countryNameFromCode } from '../globe/countries'
 import type { DotRecord } from '../globe/dots'
-
-const BREAKING_COUNT = 6
-
-function isNewsDot(d: DotRecord): boolean {
-  return !d.id.startsWith('mkt:')
-}
+import { pickBreaking } from './breaking'
 
 // Top-left: WORLDVIEW header + breaking-news list.
 export function BreakingPanel() {
@@ -19,22 +14,7 @@ export function BreakingPanel() {
   const setFlyToTarget = useAppStore((s) => s.setFlyToTarget)
   const eventCount = useAppStore((s) => s.eventCount)
 
-  const breakingItems = useMemo<DotRecord[]>(() => {
-    return [...dots]
-      .filter(isNewsDot)
-      .filter((d) => d.breaking === true)
-      .sort((a, b) => {
-        // Sort by importance first so the most consequential breaking story is
-        // at the top, then by recency as a tiebreaker
-        const ai = a.importance ?? 0
-        const bi = b.importance ?? 0
-        if (bi !== ai) return bi - ai
-        const at = a.occurredAt ? Date.parse(a.occurredAt) : 0
-        const bt = b.occurredAt ? Date.parse(b.occurredAt) : 0
-        return bt - at
-      })
-      .slice(0, BREAKING_COUNT)
-  }, [dots])
+  const breakingItems = useMemo<DotRecord[]>(() => pickBreaking(dots), [dots])
 
   function onBreakingClick(d: DotRecord) {
     audio.click()
