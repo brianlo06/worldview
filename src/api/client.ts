@@ -68,12 +68,12 @@ function isCategory(s: string): s is Category {
   return VALID_CATEGORIES.has(s as Category)
 }
 
-function ensureCategory(s: string | null): Category {
+export function ensureCategory(s: string | null): Category {
   return s && isCategory(s) ? s : 'business'
 }
 
 // If multiple sources cover this story, label e.g. "fox13seattle.com · +18 more"
-function formatSourceLabel(
+export function formatSourceLabel(
   outlet: string | null,
   eventCount: number,
 ): string | undefined {
@@ -83,7 +83,7 @@ function formatSourceLabel(
 }
 
 // Fields shared by every cluster-shaped API row (cluster list, search hits).
-interface ApiClusterCommon {
+export interface ApiClusterCommon {
   title: string
   summary: string | null
   url: string | null
@@ -102,7 +102,7 @@ interface ApiClusterCommon {
 
 // Shared cluster-row → dot mapping; callers spread in their extras
 // (occurredAt for clusters, similarity for search hits).
-function clusterCommonToDot(c: ApiClusterCommon, id: string): DotRecord | null {
+export function clusterCommonToDot(c: ApiClusterCommon, id: string): DotRecord | null {
   if (c.lat === null || c.lon === null) return null
   return {
     id: `cl:${id}`,
