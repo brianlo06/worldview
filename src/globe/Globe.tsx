@@ -34,6 +34,12 @@ const SEED_DOTS: DotRecord[] = [
 ]
 
 const REFRESH_INTERVAL_MS = 60_000
+// Fast retry cadence while the news feed is unreachable, so the globe heals
+// shortly after the API recovers instead of waiting a full refresh interval.
+const OFFLINE_RETRY_MS = 10_000
+// Boot-fetch timeout: more headroom than the 8s default — the boot screen is
+// already covering the wait, and prod /clusters can be slow mid-ingest.
+const BOOT_TIMEOUT_MS = 20_000
 
 export function Globe() {
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -67,15 +73,23 @@ export function Globe() {
 
     ;(async () => {
       try {
-        // Load textures + events (clusters or raw, by mode) + markets in parallel
+        // Load textures + events (clusters or raw, by mode) + markets in parallel.
+        // The boot fetch gets a generous timeout: the prod box can take >8s to
+        // answer /clusters mid-ingest, and the boot screen is covering the wait
+        // anyway. Failures here aren't terminal — the refresh loop retries on a
+        // fast cadence while offline.
         const newsFetch =
           layerMode === 'clusters'
-            ? fetchClusters({ hours: 48, minEvents: 1, limit: 2000, tier: significanceTier, signal: abort.signal })
+            ? fetchClusters({
+                hours: 48, minEvents: 1, limit: 2000, tier: significanceTier,
+                signal: abort.signal, timeoutMs: BOOT_TIMEOUT_MS,
+              })
             : fetchRecentEvents({
                 hours: 48,
                 limit: 2000,
                 minImportance: 0.3,
                 signal: abort.signal,
+                timeoutMs: BOOT_TIMEOUT_MS,
               })
 
         const [textures, eventsResult, marketsResult] = await Promise.all([
@@ -92,22 +106,23 @@ export function Globe() {
         if (cancelled || !containerRef.current) return
 
         let initialDots: DotRecord[]
-        const events = eventsResult.ok ? eventsResult.dots : []
         const markets = marketsResult.ok ? marketsResult.dots : []
 
-        if (events.length > 0 || markets.length > 0) {
+        // Status follows the NEWS fetch alone. Previously a successful
+        // /markets with a timed-out /clusters reported "connected" while
+        // rendering an empty globe; now that's offline (seed dots + banner)
+        // and the refresh loop below retries on its fast offline cadence.
+        if (eventsResult.ok) {
           // News only — markets/currencies live in their own HUD panel now
-          initialDots = events
+          initialDots = eventsResult.dots
           setApiStatus('connected')
-          setEventCount(events.length)
+          setEventCount(initialDots.length)
           setLastUpdated(Date.now())
         } else {
           initialDots = SEED_DOTS
           setApiStatus('offline')
           setEventCount(SEED_DOTS.length)
-          if (!eventsResult.ok) {
-            console.warn('worldview-api events fetch failed:', eventsResult.error)
-          }
+          console.warn('worldview-api events fetch failed:', eventsResult.error)
         }
         setDotsInStore(initialDots)
         setMarkets(markets)
@@ -243,37 +258,47 @@ export function Globe() {
     setFlyToTarget(null)
   }, [flyToTarget, setFlyToTarget])
 
-  // Auto-refresh every REFRESH_INTERVAL_MS, also triggers when layerMode changes
+  // Auto-refresh every REFRESH_INTERVAL_MS, also triggers when layerMode
+  // changes. Self-scheduling timeout instead of a fixed interval: while the
+  // news fetch is failing we retry on the fast OFFLINE_RETRY_MS cadence so a
+  // visitor who lands during a slow API window heals in seconds, not minutes.
+  // The two fetches settle independently — a slow /markets must not flip the
+  // FEED OFFLINE banner when the news fetch actually succeeded (and vice
+  // versa: fresh market data still applies while news is down).
   useEffect(() => {
     if (!ready) return
     let cancelled = false
+    let timer: number | undefined
     const tick = async () => {
-      try {
-        const newsFetch =
-          layerMode === 'clusters'
-            ? fetchClusters({ hours: 48, minEvents: 1, limit: 2000, tier: significanceTier })
-            : fetchRecentEvents({ hours: 48, limit: 2000, minImportance: 0.3 })
-        const [events, markets] = await Promise.all([newsFetch, fetchMarkets()])
-        if (cancelled) return
+      const newsFetch =
+        layerMode === 'clusters'
+          ? fetchClusters({ hours: 48, minEvents: 1, limit: 2000, tier: significanceTier })
+          : fetchRecentEvents({ hours: 48, limit: 2000, minImportance: 0.3 })
+      const [newsResult, marketsResult] = await Promise.allSettled([newsFetch, fetchMarkets()])
+      if (cancelled) return
+      let newsOk = false
+      if (marketsResult.status === 'fulfilled') {
+        setMarkets(marketsResult.value)
+      }
+      if (newsResult.status === 'fulfilled') {
+        const events = newsResult.value
         setDotsInStore(events)
-        setMarkets(markets)
         setEventCount(events.length)
         setApiStatus('connected')
         setLastUpdated(Date.now())
         sceneRef.current?.setDots(events)
-      } catch (e) {
-        if (!cancelled) {
-          setApiStatus('offline')
-          console.warn('refresh failed:', e)
-        }
+        newsOk = true
+      } else {
+        setApiStatus('offline')
+        console.warn('refresh failed:', newsResult.reason)
       }
+      timer = window.setTimeout(tick, newsOk ? REFRESH_INTERVAL_MS : OFFLINE_RETRY_MS)
     }
-    // Fetch immediately when layerMode changes, then on interval
+    // Fetch immediately when layerMode changes, then self-schedule
     void tick()
-    const id = setInterval(tick, REFRESH_INTERVAL_MS)
     return () => {
       cancelled = true
-      clearInterval(id)
+      if (timer !== undefined) clearTimeout(timer)
     }
   }, [ready, layerMode, significanceTier, setDotsInStore, setEventCount, setApiStatus, setLastUpdated, setMarkets])
 

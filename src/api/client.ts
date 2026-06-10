@@ -151,6 +151,9 @@ export interface FetchEventsOptions {
   limit?: number
   minImportance?: number
   signal?: AbortSignal
+  // Override the default 8s timeout — the boot fetch allows extra headroom
+  // because the API can be slow mid-ingest on the small prod box.
+  timeoutMs?: number
 }
 
 export async function fetchRecentEvents(
@@ -163,7 +166,7 @@ export async function fetchRecentEvents(
     params.set('min_importance', String(opts.minImportance))
 
   const url = `${API_BASE}/events/recent?${params}`
-  const res = await timedFetch(url, { signal: opts.signal })
+  const res = await timedFetch(url, { signal: opts.signal }, opts.timeoutMs ?? DEFAULT_TIMEOUT_MS)
   if (!res.ok) throw new Error(`API ${res.status} ${res.statusText}`)
   const events = (await res.json()) as ApiEvent[]
   return events.map(toDot)
@@ -419,6 +422,7 @@ export async function fetchClusters(opts: {
   limit?: number
   tier?: SignificanceTier
   signal?: AbortSignal
+  timeoutMs?: number
 } = {}): Promise<DotRecord[]> {
   const params = new URLSearchParams()
   if (opts.hours !== undefined) params.set('hours', String(opts.hours))
@@ -426,7 +430,7 @@ export async function fetchClusters(opts: {
   if (opts.limit !== undefined) params.set('limit', String(opts.limit))
   if (opts.tier !== undefined) params.set('tier', opts.tier)
   const url = `${API_BASE}/clusters?${params}`
-  const res = await timedFetch(url, { signal: opts.signal })
+  const res = await timedFetch(url, { signal: opts.signal }, opts.timeoutMs ?? DEFAULT_TIMEOUT_MS)
   if (!res.ok) throw new Error(`API ${res.status} ${res.statusText}`)
   const clusters = (await res.json()) as ApiCluster[]
   return clusters
