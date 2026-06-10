@@ -416,6 +416,28 @@ export async function fetchCluster(
   }
 }
 
+// Member images for a cluster — feeds the briefing's visual carousel. Returns
+// the representative image first, then distinct member images, capped small.
+export async function fetchClusterImages(
+  id: string,
+  signal?: AbortSignal,
+): Promise<string[]> {
+  try {
+    const res = await timedFetch(
+      `${API_BASE}/clusters/${id.replace(/^cl:/, '')}`,
+      { signal },
+    )
+    if (!res.ok) return []
+    const j = (await res.json()) as ApiCluster & {
+      members?: { image_url: string | null }[]
+    }
+    const urls = [j.image_url, ...(j.members ?? []).map((m) => m.image_url)]
+    return [...new Set(urls.filter((u): u is string => !!u))].slice(0, 6)
+  } catch {
+    return []
+  }
+}
+
 export async function fetchClusters(opts: {
   hours?: number
   minEvents?: number

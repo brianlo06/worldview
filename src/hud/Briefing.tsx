@@ -6,7 +6,12 @@
 // a duration, and we sleep() between phases for breathing room.
 
 import { useEffect, useRef, useState } from 'react'
-import { fetchBriefing, fetchClusters, type BriefingScript } from '../api/client'
+import {
+  fetchBriefing,
+  fetchClusterImages,
+  fetchClusters,
+  type BriefingScript,
+} from '../api/client'
 import { useAppStore } from '../store/useAppStore'
 import { audio } from '../audio/audio'
 import { speak, silence } from '../audio/voice'
@@ -94,16 +99,36 @@ const sleep = (ms: number, signal: AbortSignal): Promise<void> =>
 export function Briefing({ onClose }: BriefingProps) {
   const setFlyToTarget = useAppStore((s) => s.setFlyToTarget)
   const setSelectedEntity = useAppStore((s) => s.setSelectedEntity)
+  const setBriefingPin = useAppStore((s) => s.setBriefingPin)
   const [phase, setPhase] = useState<Phase>('loading')
   const [stories, setStories] = useState<DotRecord[]>([])
+  const [narrations, setNarrations] = useState<string[]>([])
+  const [introText, setIntroText] = useState('')
+  const [outroText, setOutroText] = useState('')
   const [index, setIndex] = useState(0)
+  const [images, setImages] = useState<string[]>([])
+  const [imgIdx, setImgIdx] = useState(0)
   const abortRef = useRef(new AbortController())
+
+  // Visual carousel: while a story is narrated, cycle through its cluster's
+  // member images like JARVIS shuffling surveillance feeds.
+  useEffect(() => {
+    if (phase !== 'story' || images.length < 2) return
+    const id = setInterval(() => setImgIdx((i) => i + 1), 3200)
+    return () => clearInterval(id)
+  }, [phase, images])
 
   // Run the briefing sequence once on mount. Cancellation is via the abort
   // controller — both speak() (cancelled via silence()) and sleep() honor it.
   useEffect(() => {
     const ctrl = abortRef.current
     const aborted = () => ctrl.signal.aborted
+
+    // The tour and the briefing fight over the camera — the tour keeps
+    // rotating away from the story the globe just flew to. Pause it for the
+    // duration and restore it on any exit path (cleanup runs on all of them).
+    const tourWasOn = useAppStore.getState().tourMode
+    if (tourWasOn) useAppStore.getState().setTourMode(false)
 
     async function run() {
       // Primary: server-narrated briefing. Fall back to a local script built
@@ -126,6 +151,9 @@ export function Briefing({ onClose }: BriefingProps) {
       }
       const dots = script.stories.map((s) => s.dot)
       setStories(dots)
+      setNarrations(script.stories.map((s) => s.narration))
+      setIntroText(script.intro)
+      setOutroText(script.outro)
       setPhase('intro')
 
       // Intro
@@ -144,6 +172,19 @@ export function Briefing({ onClose }: BriefingProps) {
         if (aborted()) return
         const { dot: d, narration } = script.stories[i]
         setIndex(i)
+
+        // Visual feed: start with the story's own image, then pull the
+        // cluster's member images in the background for the carousel.
+        setImages(d.imageUrl ? [d.imageUrl] : [])
+        setImgIdx(0)
+        if (d.id.startsWith('cl:')) {
+          void fetchClusterImages(d.id, ctrl.signal).then((urls) => {
+            if (!ctrl.signal.aborted && urls.length > 0) setImages(urls)
+          })
+        }
+
+        // Sonar ring on the globe at the narrated location.
+        setBriefingPin({ lat: d.lat, lon: d.lon })
 
         // Fly the globe + push the story into the selection card. The card
         // still shows the cluster's own source text (spoken-only scope).
@@ -177,6 +218,8 @@ export function Briefing({ onClose }: BriefingProps) {
 
       // Outro
       if (aborted()) return
+      setBriefingPin(null)
+      setImages([])
       setPhase('outro')
       audio.whoosh(0.4)
       await speak(script.outro || 'End of briefing.', { rate: 0.95 })
@@ -195,6 +238,10 @@ export function Briefing({ onClose }: BriefingProps) {
       // Abort on unmount or re-run.
       ctrl.abort()
       silence()
+      // Clear the story ring and hand the camera back to the tour if we
+      // borrowed it. Runs on every exit path: done, abort, error, unmount.
+      useAppStore.getState().setBriefingPin(null)
+      if (tourWasOn) useAppStore.getState().setTourMode(true)
       // Don't wipe selectedEntity on abort — user may want to keep it.
     }
     // onClose is stable from parent; intentionally not in deps to avoid re-runs.
@@ -217,7 +264,7 @@ export function Briefing({ onClose }: BriefingProps) {
     <div className="pointer-events-none fixed inset-x-0 top-0 z-[900] flex flex-col items-center pt-[5.5rem]">
       {/* Top-center holo banner */}
       <div
-        className="pointer-events-auto holo-frame border border-[#7be0ff]/40 bg-[#02040a]/85 backdrop-blur-sm px-6 py-3 min-w-[26rem] text-center"
+        className="pointer-events-auto holo-frame border border-[#7be0ff]/40 bg-[#02040a]/85 backdrop-blur-sm px-6 py-3 w-[34rem] max-w-[calc(100vw-2rem)] text-center"
         style={{ boxShadow: '0 0 24px rgba(124,224,255,0.25)' }}
       >
         <div className="text-hud-xs tracking-[0.42em] text-[#4cc9ff]/80 flex items-center justify-center gap-2">
@@ -251,6 +298,72 @@ export function Briefing({ onClose }: BriefingProps) {
           <div className="mt-1 text-hud-xs tracking-[0.3em] text-[#cfe6ff]/70 tabular-nums">
             {fmtCoord(current.lat, 'N', 'S')} · {fmtCoord(current.lon, 'E', 'W')}
             {current.countryCode ? ` · ${current.countryCode.toUpperCase()}` : ''}
+          </div>
+        )}
+
+        {/* Visual feed: cluster imagery cycling under a holo treatment */}
+        {phase === 'story' && images.length > 0 && (() => {
+          const src = images[imgIdx % images.length]
+          return (
+            <div className="relative mt-2.5 h-44 w-full overflow-hidden border border-[#4cc9ff]/25 bg-[#02040a]">
+              <img
+                key={src}
+                src={src}
+                alt=""
+                className="briefing-img absolute inset-0 w-full h-full object-cover"
+                onError={() => setImages((prev) => prev.filter((u) => u !== src))}
+              />
+              {/* Holo grade + scanlines, matching the selection card treatment */}
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background:
+                    'linear-gradient(180deg, rgba(76,201,255,0.16), rgba(2,4,10,0) 35%, rgba(2,4,10,0.6))',
+                }}
+              />
+              <div
+                className="absolute inset-0 pointer-events-none opacity-25 mix-blend-screen"
+                style={{
+                  background:
+                    'repeating-linear-gradient(0deg, transparent 0 2px, rgba(124,224,255,0.18) 2px 3px)',
+                }}
+              />
+              {/* Targeting corner brackets */}
+              <span className="absolute top-0 left-0 w-3.5 h-3.5 border-t-2 border-l-2 border-[#7be0ff]/90" />
+              <span className="absolute top-0 right-0 w-3.5 h-3.5 border-t-2 border-r-2 border-[#7be0ff]/90" />
+              <span className="absolute bottom-0 left-0 w-3.5 h-3.5 border-b-2 border-l-2 border-[#7be0ff]/90" />
+              <span className="absolute bottom-0 right-0 w-3.5 h-3.5 border-b-2 border-r-2 border-[#7be0ff]/90" />
+              {/* Feed counter */}
+              {images.length > 1 && (
+                <div className="absolute bottom-1.5 right-2 text-hud-2xs tracking-[0.3em] text-[#7be0ff]/85 tabular-nums">
+                  VISUAL {String((imgIdx % images.length) + 1).padStart(2, '0')}/
+                  {String(images.length).padStart(2, '0')}
+                </div>
+              )}
+              <div className="absolute bottom-1.5 left-2 text-hud-2xs tracking-[0.3em] text-[#4cc9ff]/60">
+                ◉ LIVE FEED
+              </div>
+            </div>
+          )
+        })()}
+
+        {/* Subtitle: the narration JARVIS is speaking */}
+        {phase === 'story' && narrations[index] && (
+          <div
+            key={index}
+            className="briefing-sub mt-2.5 mx-auto max-w-[30rem] text-hud-sm normal-case tracking-normal leading-relaxed text-[#dfeeff]/90"
+          >
+            {narrations[index]}
+          </div>
+        )}
+        {phase === 'intro' && introText && (
+          <div className="briefing-sub mt-2.5 mx-auto max-w-[30rem] text-hud-sm normal-case tracking-normal leading-relaxed text-[#dfeeff]/90">
+            {introText}
+          </div>
+        )}
+        {phase === 'outro' && outroText && (
+          <div className="briefing-sub mt-2.5 mx-auto max-w-[30rem] text-hud-sm normal-case tracking-normal leading-relaxed text-[#dfeeff]/90">
+            {outroText}
           </div>
         )}
 

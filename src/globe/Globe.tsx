@@ -59,6 +59,7 @@ export function Globe() {
   const searchResults = useAppStore((s) => s.searchResults)
   const allDots = useAppStore((s) => s.dots)
   const anomalies = useAppStore((s) => s.anomalies)
+  const briefingPin = useAppStore((s) => s.briefingPin)
   const setAnomalies = useAppStore((s) => s.setAnomalies)
   const disabledCategories = useAppStore((s) => s.disabledCategories)
   const significanceTier = useAppStore((s) => s.significanceTier)
@@ -242,14 +243,16 @@ export function Globe() {
 
   // Push active anomaly pins to the sonar-ring marker layer — these are big,
   // persistent rings that float above the dot cloud, unlike the small one-shot
-  // breaking-news pulses
+  // breaking-news pulses. The briefing's active story borrows the same layer
+  // so the narrated location gets a sonar ring while JARVIS talks about it.
   useEffect(() => {
     if (!ready) return
     const pins = anomalies
       .filter((a) => a.pulse_lat !== null && a.pulse_lon !== null)
       .map((a) => ({ lat: a.pulse_lat!, lon: a.pulse_lon! }))
+    if (briefingPin) pins.push({ lat: briefingPin.lat, lon: briefingPin.lon })
     sceneRef.current?.setAnomalyPins(pins)
-  }, [ready, anomalies])
+  }, [ready, anomalies, briefingPin])
 
   // FlyTo action signal — applied once then cleared
   useEffect(() => {

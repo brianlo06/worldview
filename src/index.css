@@ -100,6 +100,30 @@ canvas {
   animation: hudFadeIn 450ms ease-out backwards;
 }
 
+/* Briefing visual carousel: each image fades in over a slow Ken Burns drift,
+   so the panel reads as live surveillance imagery rather than a static photo. */
+@keyframes briefingImgIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes briefingKenBurns {
+  from { transform: scale(1.04); }
+  to   { transform: scale(1.16) translate(1.5%, -1%); }
+}
+.briefing-img {
+  animation: briefingImgIn 700ms ease-out both, briefingKenBurns 9s linear both;
+  filter: saturate(0.6) brightness(0.85) contrast(1.05) hue-rotate(-8deg);
+}
+
+/* Briefing subtitle: narration text materializes as JARVIS starts speaking. */
+@keyframes briefingSubIn {
+  from { opacity: 0; transform: translateY(5px); filter: blur(2px); }
+  to   { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+.briefing-sub {
+  animation: briefingSubIn 500ms ease-out backwards;
+}
+
 /* Markets ticker: a single track that translates leftward forever. The
    content is rendered twice (back-to-back), so when the first copy has
    fully scrolled out of view the second copy is in the same position the

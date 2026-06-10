@@ -91,6 +91,11 @@ interface AppState {
   anomalies: ApiAnomaly[]
   setAnomalies: (a: ApiAnomaly[]) => void
 
+  // Globe highlight for the active briefing story — rendered as a sonar ring
+  // on the anomaly-marker layer while JARVIS narrates it.
+  briefingPin: { lat: number; lon: number } | null
+  setBriefingPin: (p: AppState['briefingPin']) => void
+
   // Market / currency snapshots — rendered in the right-side HUD panel,
   // not as dots on the globe
   markets: MarketSnapshot[]
@@ -177,6 +182,9 @@ export const useAppStore = create<AppState>()(
 
   anomalies: [],
   setAnomalies: (a) => set({ anomalies: a }),
+
+  briefingPin: null,
+  setBriefingPin: (p) => set({ briefingPin: p }),
 
   markets: [],
   setMarkets: (m) => set({ markets: m }),
