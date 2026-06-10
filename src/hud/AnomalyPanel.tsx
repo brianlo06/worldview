@@ -108,10 +108,10 @@ export function AnomalyPanel() {
               <div
                 key={a.id}
                 style={{ animationDelay: `${ai * 60}ms` }}
-                className={`hud-panel-in border bg-[#02040a]/80 backdrop-blur-sm transition ${
+                className={`hud-panel-in border backdrop-blur-sm transition ${
                   expanded
-                    ? 'border-[#ff5a4a] bg-[#ff5a4a]/6'
-                    : 'border-[#ff5a4a]/60 hover:bg-[#ff5a4a]/8'
+                    ? 'border-[#ff5a4a] bg-[#02040a]/95'
+                    : 'border-[#ff5a4a]/60 bg-[#02040a]/80 hover:border-[#ff5a4a]/90'
                 }`}
               >
                 {/* Header — click to expand + fly to the region */}
