@@ -197,6 +197,11 @@ function clusterToDot(c: ApiCluster): DotRecord | null {
   return dot && { ...dot, occurredAt: c.last_seen }
 }
 
+export interface AnomalyDriverStory {
+  cluster_id: string
+  title: string
+}
+
 export interface ApiAnomaly {
   id: string
   region_code: string
@@ -207,7 +212,9 @@ export interface ApiAnomaly {
   sigma_above: number
   pulse_lat: number | null
   pulse_lon: number | null
-  driver_titles: string[]
+  // One-line JARVIS read of the spike, generated server-side at detection.
+  synopsis: string | null
+  driver_stories: AnomalyDriverStory[]
 }
 
 export async function fetchAnomalies(signal?: AbortSignal): Promise<ApiAnomaly[]> {
