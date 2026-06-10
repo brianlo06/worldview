@@ -44,6 +44,8 @@ function cleanSpeech(s: string | null | undefined, maxChars = 220): string {
   if (!s) return ''
   let t = s.replace(/\s+/g, ' ').trim()
   t = t.replace(/^[A-Z]{4,}\d*\b[\s:.-]*/, '') // leading wire code, e.g. "SVRTOP "
+  // NWS title tail: "... issued June 9 at 11:13PM CDT until ... by NWS Topeka"
+  t = t.replace(/\s+issued\s+\w+\s+\d{1,2}\s+at\s+\d{1,2}:\d{2}\s*[AP]M\b.*$/i, '')
   t = t.replace(/\s*(?:\.{2,}|…)+\s*/g, ', ') // dotted separators
   t = t.replace(/\s*\*+\s*/g, ' ') // asterisk bullets
   t = t.replace(/\s+/g, ' ').replace(/^[\s,.]+|[\s,]+$/g, '')
@@ -53,16 +55,15 @@ function cleanSpeech(s: string | null | undefined, maxChars = 220): string {
 }
 
 function fallbackNarration(d: DotRecord): string {
-  const where = d.city
-    ? `In ${d.city}.`
-    : d.countryCode
-      ? `In ${countryName(d.countryCode) ?? 'an unknown region'}.`
-      : ''
+  const place = d.city ?? (d.countryCode ? countryName(d.countryCode) : null)
   const title = cleanSpeech(d.title, 160)
   const hdr = title && !/[.!?]$/.test(title) ? `${title}.` : title
   const summary = cleanSpeech(d.summary)
   const body = summary && summary.toLowerCase() !== title.toLowerCase() ? summary : ''
-  return [where, hdr, body].filter(Boolean).join(' ')
+  // "In Topeka: ..." reads as one phrase; "In Topeka. ..." makes TTS deliver
+  // the place as its own clipped sentence.
+  const lead = place && hdr ? `In ${place}: ${hdr}` : place ? `In ${place}.` : hdr
+  return [lead, body].filter(Boolean).join(' ')
 }
 
 // Client-side fallback: if POST /briefing is unreachable, fall back to the old
@@ -74,9 +75,9 @@ async function clientFallbackScript(signal: AbortSignal): Promise<BriefingScript
     .sort((a, b) => (b.importance ?? 0) - (a.importance ?? 0))
     .slice(0, STORY_COUNT)
   return {
-    intro: `Here are the top ${dots.length} stories at this hour.`,
+    intro: "The world's been busy — here's what's happening right now.",
     stories: dots.map((d) => ({ dot: d, narration: fallbackNarration(d) })),
-    outro: 'That’s your briefing.',
+    outro: "That's the picture for now. I'll keep watch.",
     source: 'fallback',
   }
 }

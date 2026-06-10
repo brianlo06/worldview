@@ -482,11 +482,13 @@ export interface BriefingScript {
 // erroring), so a thrown error here means the endpoint itself was unreachable.
 export async function fetchBriefing(signal?: AbortSignal): Promise<BriefingScript> {
   // Allow longer than the default: the server may spend up to its LLM timeout
-  // (~8s) synthesizing the script before responding.
+  // (~8s) synthesizing the script, plus query time on a busy box. Timing out
+  // early drops playback to the robotic client-side fallback — much worse
+  // than a few extra seconds of "BRIEFING · LIVE" while the script arrives.
   const res = await timedFetch(
     `${API_BASE}/briefing`,
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}', signal },
-    12000,
+    20000,
   )
   if (!res.ok) throw new Error(`API ${res.status} ${res.statusText}`)
   const j = (await res.json()) as ApiBriefing
