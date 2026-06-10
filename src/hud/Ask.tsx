@@ -37,7 +37,15 @@ export function Ask() {
   const setSelectedEntity = useAppStore((s) => s.setSelectedEntity)
   const apiStatus = useAppStore((s) => s.apiStatus)
 
-  const [question, setQuestion] = useState('')
+  // Deep-link ask (?ask=… or its ?q alias), read once before first render so
+  // the hydration effect below only runs async work — never synchronous
+  // setState. An empty param is treated as absent, matching the old truthiness
+  // check.
+  const [initialAskParam] = useState(() => {
+    const v = readParams().get('ask') ?? readParams().get('q')
+    return v || null
+  })
+  const [question, setQuestion] = useState(initialAskParam ?? '')
   const [status, setStatus] = useState<Status>('idle')
   const [answer, setAnswer] = useState<AskAnswer | null>(null)
   const [askedQuestion, setAskedQuestion] = useState<string | null>(null)
@@ -45,7 +53,7 @@ export function Ask() {
   const [shareStatus, setShareStatus] = useState<ShareStatus>('idle')
   const [showCityPicker, setShowCityPicker] = useState(false)
   // arrivedFromShare: came in via a ?ask deep link → prompt them to ask their own.
-  const [arrivedFromShare, setArrivedFromShare] = useState(false)
+  const arrivedFromShare = initialAskParam != null
   const [askedOwn, setAskedOwn] = useState(false)
 
   const abortRef = useRef<AbortController | null>(null)
@@ -246,26 +254,30 @@ export function Ask() {
     }
   }
 
-  // Hydrate from the URL once on mount: reproduce a shared moment.
+  // Hydrate from the URL once on mount: reproduce a shared moment. The ask
+  // question itself is seeded in the state initializers above; this effect
+  // only dispatches the async work.
   useEffect(() => {
     if (hydratedRef.current) return
     hydratedRef.current = true
     const p = readParams()
-    const askParam = p.get('ask') ?? p.get('q') // ?q is an alias for a free-form ask
     const clusterParam = p.get('cluster')
     const focusParam = p.get('focus') // "lat,lon"
     const latParam = p.get('lat')
     const lonParam = p.get('lon')
 
-    if (askParam) {
-      setArrivedFromShare(true)
-      setQuestion(askParam)
+    if (initialAskParam) {
       const lat = latParam != null ? Number(latParam) : undefined
       const lon = lonParam != null ? Number(lonParam) : undefined
-      void runAsk(askParam, {
-        lat: Number.isFinite(lat) ? lat : undefined,
-        lon: Number.isFinite(lon) ? lon : undefined,
-        fromShare: true,
+      // Defer past the effect body: runAsk sets pending state synchronously
+      // before its first await, which would otherwise cascade a render from
+      // inside the effect.
+      queueMicrotask(() => {
+        void runAsk(initialAskParam, {
+          lat: Number.isFinite(lat) ? lat : undefined,
+          lon: Number.isFinite(lon) ? lon : undefined,
+          fromShare: true,
+        })
       })
       return
     }
