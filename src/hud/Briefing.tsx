@@ -22,6 +22,14 @@ const STORY_COUNT = 5
 const FLY_DURATION_MS = 2500
 const POST_SPEECH_PAUSE_MS = 1800
 
+// End-of-show "soft reset": glide back to the boot framing before handing
+// the camera to the tour. Derived from scene.ts camera.position.set(1.4,
+// 1.4, 2.5) → lat/lon/distance of the wide Atlantic view the app opens on.
+const HOME_LAT = 26.0
+const HOME_LON = -60.8
+const HOME_DISTANCE = 3.19
+const HOME_RESET_MS = 2800
+
 interface BriefingProps {
   onClose: () => void
 }
@@ -125,10 +133,11 @@ export function Briefing({ onClose }: BriefingProps) {
     const aborted = () => ctrl.signal.aborted
 
     // The tour and the briefing fight over the camera — the tour keeps
-    // rotating away from the story the globe just flew to. Pause it for the
-    // duration and restore it on any exit path (cleanup runs on all of them).
+    // rotating away from the story the globe just flew to. It stays on
+    // through loading + the intro line (the globe keeps its idle spin while
+    // JARVIS sets the scene), pauses right before the first story flight,
+    // and is restored on any exit path (cleanup runs on all of them).
     const tourWasOn = useAppStore.getState().tourMode
-    if (tourWasOn) useAppStore.getState().setTourMode(false)
 
     async function run() {
       // Primary: server-narrated briefing. Fall back to a local script built
@@ -165,6 +174,9 @@ export function Briefing({ onClose }: BriefingProps) {
       if (aborted()) return
       await sleep(400, ctrl.signal)
       if (aborted()) return
+
+      // Intro's done — take the camera from the tour for the story flights.
+      if (tourWasOn) useAppStore.getState().setTourMode(false)
 
       // Stories
       setPhase('story')
@@ -211,6 +223,20 @@ export function Briefing({ onClose }: BriefingProps) {
       audio.whoosh(0.4)
       await speak(script.outro || 'End of briefing.', { rate: 0.95 })
       if (aborted()) return
+      // Soft reset: glide back to the wide home view before the cleanup
+      // hands the camera to the tour, so it resumes its idle spin from the
+      // framing the app opened on instead of wherever story 5 happened.
+      if (tourWasOn) {
+        setFlyToTarget({
+          lat: HOME_LAT,
+          lon: HOME_LON,
+          distance: HOME_DISTANCE,
+          durationMs: HOME_RESET_MS,
+          marker: false,
+        })
+        await sleep(HOME_RESET_MS, ctrl.signal)
+        if (aborted()) return
+      }
       setPhase('done')
       // Brief settle then close
       await sleep(800, ctrl.signal)

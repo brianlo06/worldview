@@ -21,7 +21,12 @@ export interface SceneHandle {
   dispose(): void
   setDots(records: DotRecord[]): void
   onPick(handler: (record: DotRecord | null) => void): void
-  flyTo(lat: number, lon: number, durationMs?: number): void
+  flyTo(
+    lat: number,
+    lon: number,
+    durationMs?: number,
+    opts?: { distance?: number; marker?: boolean },
+  ): void
   setTourMode(b: boolean): void
   setAutoPulse(b: boolean): void
   spawnBreakingPulse(record?: DotRecord): void
@@ -328,18 +333,22 @@ export function createScene(
     onPick(handler) {
       pickHandler = handler
     },
-    flyTo: (lat, lon, durationMs) => {
+    flyTo: (lat, lon, durationMs, opts) => {
       audio.whoosh(0.4)
       // Place the selection marker at the destination — clicks from the
       // BREAKING / SEARCH panels feed in here and the user expects the same
       // visual highlight they'd get from clicking the dot directly.
       // The marker sits at the same radius as dots (1.012× Earth radius),
       // then the marker module lifts itself another 2% so it floats just
-      // above the dot to avoid Z-fighting.
-      const pos = latLonToVec3(lat, lon, EARTH_RADIUS * 1.012)
-      marker.setTarget(pos, elapsedNow())
+      // above the dot to avoid Z-fighting. Camera-only moves (the briefing's
+      // end-of-show reset to the home view) pass marker: false — a marker in
+      // the open ocean would be noise.
+      if (opts?.marker !== false) {
+        const pos = latLonToVec3(lat, lon, EARTH_RADIUS * 1.012)
+        marker.setTarget(pos, elapsedNow())
+      }
       // controls.flyTo signature: (lat, lon, distance?, durationMs?)
-      controls.flyTo(lat, lon, undefined, durationMs)
+      controls.flyTo(lat, lon, opts?.distance, durationMs)
     },
     setTourMode(b) {
       if (tour.isEnabled() === b) return  // no-op + no whoosh on redundant set

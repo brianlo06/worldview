@@ -84,7 +84,17 @@ interface AppState {
   setDots: (d: DotRecord[]) => void
 
   // FlyTo action signal — Globe consumes and resets to null after applying.
-  flyToTarget: { lat: number; lon: number; id?: string; durationMs?: number } | null
+  // distance overrides the camera's end-of-flight zoom; marker: false skips
+  // the destination selection marker (camera-only moves like the briefing's
+  // home reset).
+  flyToTarget: {
+    lat: number
+    lon: number
+    id?: string
+    durationMs?: number
+    distance?: number
+    marker?: boolean
+  } | null
   setFlyToTarget: (t: AppState['flyToTarget']) => void
 
   // Anomaly alerts — active region spikes
