@@ -186,23 +186,10 @@ export function Briefing({ onClose }: BriefingProps) {
         // Sonar ring on the globe at the narrated location.
         setBriefingPin({ lat: d.lat, lon: d.lon })
 
-        // Fly the globe + push the story into the selection card. The card
-        // still shows the cluster's own source text (spoken-only scope).
+        // Fly the globe. The lower-third carries the story visuals/text now —
+        // the selection card stays out of the way so the globe (and the ring)
+        // are visible at screen center during playback.
         setFlyToTarget({ lat: d.lat, lon: d.lon, id: d.id, durationMs: FLY_DURATION_MS })
-        setSelectedEntity({
-          type: 'cluster',
-          id: d.id,
-          title: d.title,
-          summary: d.summary,
-          imageUrl: d.imageUrl,
-          url: d.url,
-          sourceOutlet: d.sourceOutlet,
-          occurredAt: d.occurredAt,
-          category: d.category,
-          countryCode: d.countryCode,
-          city: d.city,
-          geoPrecision: d.geoPrecision,
-        })
 
         // Let the camera settle before JARVIS starts talking.
         await sleep(FLY_DURATION_MS * 0.6, ctrl.signal)
@@ -224,7 +211,6 @@ export function Briefing({ onClose }: BriefingProps) {
       audio.whoosh(0.4)
       await speak(script.outro || 'End of briefing.', { rate: 0.95 })
       if (aborted()) return
-      setSelectedEntity(null)
       setPhase('done')
       // Brief settle then close
       await sleep(800, ctrl.signal)
@@ -251,6 +237,25 @@ export function Briefing({ onClose }: BriefingProps) {
   function handleAbort() {
     abortRef.current.abort()
     silence()
+    // Hand the aborted story to the selection card so the user can keep
+    // exploring it (article link, share) after the briefing UI is gone.
+    const d = stories[index]
+    if (d) {
+      setSelectedEntity({
+        type: 'cluster',
+        id: d.id,
+        title: d.title,
+        summary: d.summary,
+        imageUrl: d.imageUrl,
+        url: d.url,
+        sourceOutlet: d.sourceOutlet,
+        occurredAt: d.occurredAt,
+        category: d.category,
+        countryCode: d.countryCode,
+        city: d.city,
+        geoPrecision: d.geoPrecision,
+      })
+    }
     setPhase('aborted')
     onClose()
   }
@@ -259,137 +264,152 @@ export function Briefing({ onClose }: BriefingProps) {
   const current = stories[index]
   const num = String(index + 1).padStart(2, '0')
   const totalStr = String(total).padStart(2, '0')
+  const statusWord =
+    phase === 'loading' ? 'ACQUIRING SIGNAL'
+    : phase === 'intro' ? 'INITIALIZING'
+    : phase === 'story' && current ? locationLabel(current)
+    : phase === 'error' ? 'NO DATA AVAILABLE'
+    : phase === 'aborted' ? 'ABORTED'
+    : 'BRIEFING COMPLETE'
+  const subtitle =
+    phase === 'story' ? narrations[index]
+    : phase === 'intro' ? introText
+    : phase === 'outro' ? outroText
+    : ''
+  const feedSrc =
+    phase === 'story' && images.length > 0 ? images[imgIdx % images.length] : null
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-0 z-[900] flex flex-col items-center pt-[5.5rem]">
-      {/* Top-center holo banner */}
-      <div
-        className="pointer-events-auto holo-frame border border-[#7be0ff]/40 bg-[#02040a]/85 backdrop-blur-sm px-6 py-3 w-[34rem] max-w-[calc(100vw-2rem)] text-center"
-        style={{ boxShadow: '0 0 24px rgba(124,224,255,0.25)' }}
-      >
-        <div className="text-hud-xs tracking-[0.42em] text-[#4cc9ff]/80 flex items-center justify-center gap-2">
+    <>
+      {/* Slim top status strip — the globe (and the story's sonar ring) own
+          the center of the screen; this only carries state + controls. */}
+      <div className="pointer-events-none fixed inset-x-0 top-[5.5rem] z-[900] flex justify-center px-4">
+        <div
+          className="pointer-events-auto holo-frame border border-[#7be0ff]/40 bg-[#02040a]/85 backdrop-blur-sm px-4 py-1.5 flex items-center gap-3"
+          style={{ boxShadow: '0 0 24px rgba(124,224,255,0.25)' }}
+        >
           <span
-            className="inline-block w-1.5 h-1.5 rounded-full"
+            className="inline-block w-1.5 h-1.5 rounded-full flex-shrink-0"
             style={{
               background: '#7be0ff',
               boxShadow: '0 0 6px #7be0ff, 0 0 12px #4cc9ff80',
               animation: 'pulse 1.4s ease-in-out infinite',
             }}
           />
-          <span>TOP STORIES BRIEFING</span>
-          <span className="opacity-60">·</span>
-          <span className="text-[#7be0ff] tabular-nums">{num} / {totalStr || '—'}</span>
+          <span className="text-hud-xs tracking-[0.42em] text-[#4cc9ff]/80">
+            TOP STORIES BRIEFING
+          </span>
+          <span className="text-hud-xs text-[#7be0ff] tabular-nums tracking-[0.2em]">
+            {num} / {totalStr || '—'}
+          </span>
+          <span
+            className="text-hud-xs tracking-[0.32em] text-[#7be0ff] tabular-nums"
+            style={{ textShadow: '0 0 10px rgba(124,224,255,0.55)' }}
+          >
+            {statusWord}
+          </span>
+          {total > 0 && (
+            <span className="flex gap-1">
+              {stories.map((_, i) => (
+                <span
+                  key={i}
+                  className="h-0.5 w-5 transition-all duration-300"
+                  style={{
+                    background: i < index ? '#4cc9ff80' : i === index ? '#7be0ff' : '#4cc9ff20',
+                    boxShadow: i === index ? '0 0 8px #7be0ff' : undefined,
+                  }}
+                />
+              ))}
+            </span>
+          )}
+          <button
+            onClick={handleAbort}
+            className="text-hud-2xs tracking-[0.3em] text-[#ff8f6b]/80 hover:text-[#ffb59a] border border-[#ff8f6b]/30 hover:border-[#ff8f6b]/60 px-2 py-0.5"
+          >
+            ◢ ABORT
+          </button>
         </div>
+      </div>
 
-        <div
-          className="mt-1.5 text-[#7be0ff] text-hud-md tracking-[0.32em] tabular-nums leading-tight min-h-[1.4em]"
-          style={{ textShadow: '0 0 10px rgba(124,224,255,0.55)' }}
-        >
-          {phase === 'loading' && 'ACQUIRING SIGNAL'}
-          {phase === 'intro' && 'INITIALIZING BRIEFING'}
-          {phase === 'story' && current && locationLabel(current)}
-          {phase === 'outro' && 'BRIEFING COMPLETE'}
-          {phase === 'done' && 'BRIEFING COMPLETE'}
-          {phase === 'error' && 'NO DATA AVAILABLE'}
-          {phase === 'aborted' && 'ABORTED'}
-        </div>
-
-        {phase === 'story' && current && (
-          <div className="mt-1 text-hud-xs tracking-[0.3em] text-[#cfe6ff]/70 tabular-nums">
-            {fmtCoord(current.lat, 'N', 'S')} · {fmtCoord(current.lon, 'E', 'W')}
-            {current.countryCode ? ` · ${current.countryCode.toUpperCase()}` : ''}
-          </div>
-        )}
-
-        {/* Visual feed: cluster imagery cycling under a holo treatment */}
-        {phase === 'story' && images.length > 0 && (() => {
-          const src = images[imgIdx % images.length]
-          return (
-            <div className="relative mt-2.5 h-44 w-full overflow-hidden border border-[#4cc9ff]/25 bg-[#02040a]">
-              <img
-                key={src}
-                src={src}
-                alt=""
-                className="briefing-img absolute inset-0 w-full h-full object-cover"
-                onError={() => setImages((prev) => prev.filter((u) => u !== src))}
-              />
-              {/* Holo grade + scanlines, matching the selection card treatment */}
-              <div
-                className="absolute inset-0 pointer-events-none"
-                style={{
-                  background:
-                    'linear-gradient(180deg, rgba(76,201,255,0.16), rgba(2,4,10,0) 35%, rgba(2,4,10,0.6))',
-                }}
-              />
-              <div
-                className="absolute inset-0 pointer-events-none opacity-25 mix-blend-screen"
-                style={{
-                  background:
-                    'repeating-linear-gradient(0deg, transparent 0 2px, rgba(124,224,255,0.18) 2px 3px)',
-                }}
-              />
-              {/* Targeting corner brackets */}
-              <span className="absolute top-0 left-0 w-3.5 h-3.5 border-t-2 border-l-2 border-[#7be0ff]/90" />
-              <span className="absolute top-0 right-0 w-3.5 h-3.5 border-t-2 border-r-2 border-[#7be0ff]/90" />
-              <span className="absolute bottom-0 left-0 w-3.5 h-3.5 border-b-2 border-l-2 border-[#7be0ff]/90" />
-              <span className="absolute bottom-0 right-0 w-3.5 h-3.5 border-b-2 border-r-2 border-[#7be0ff]/90" />
-              {/* Feed counter */}
-              {images.length > 1 && (
-                <div className="absolute bottom-1.5 right-2 text-hud-2xs tracking-[0.3em] text-[#7be0ff]/85 tabular-nums">
-                  VISUAL {String((imgIdx % images.length) + 1).padStart(2, '0')}/
-                  {String(images.length).padStart(2, '0')}
+      {/* Lower-third: visual feed + narration, broadcast style. Sits above
+          the telemetry readout, leaving the globe center unobstructed. */}
+      {(subtitle || feedSrc) && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-[4.5rem] z-[900] flex justify-center px-4">
+          <div
+            className="pointer-events-auto holo-frame border border-[#7be0ff]/40 bg-[#02040a]/85 backdrop-blur-sm flex items-stretch w-[46rem] max-w-full overflow-hidden text-left"
+            style={{ boxShadow: '0 0 24px rgba(124,224,255,0.2)' }}
+          >
+            {feedSrc && (
+              <div className="relative w-60 flex-shrink-0 min-h-[8.5rem] overflow-hidden border-r border-[#4cc9ff]/25 bg-[#02040a]">
+                <img
+                  key={feedSrc}
+                  src={feedSrc}
+                  alt=""
+                  className="briefing-img absolute inset-0 w-full h-full object-cover"
+                  onError={() => setImages((prev) => prev.filter((u) => u !== feedSrc))}
+                />
+                {/* Holo grade + scanlines, matching the selection card treatment */}
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    background:
+                      'linear-gradient(180deg, rgba(76,201,255,0.16), rgba(2,4,10,0) 35%, rgba(2,4,10,0.6))',
+                  }}
+                />
+                <div
+                  className="absolute inset-0 pointer-events-none opacity-25 mix-blend-screen"
+                  style={{
+                    background:
+                      'repeating-linear-gradient(0deg, transparent 0 2px, rgba(124,224,255,0.18) 2px 3px)',
+                  }}
+                />
+                {/* Targeting corner brackets */}
+                <span className="absolute top-0 left-0 w-3.5 h-3.5 border-t-2 border-l-2 border-[#7be0ff]/90" />
+                <span className="absolute top-0 right-0 w-3.5 h-3.5 border-t-2 border-r-2 border-[#7be0ff]/90" />
+                <span className="absolute bottom-0 left-0 w-3.5 h-3.5 border-b-2 border-l-2 border-[#7be0ff]/90" />
+                <span className="absolute bottom-0 right-0 w-3.5 h-3.5 border-b-2 border-r-2 border-[#7be0ff]/90" />
+                {/* Feed counter */}
+                {images.length > 1 && (
+                  <div className="absolute bottom-1 right-1.5 text-hud-2xs tracking-[0.3em] text-[#7be0ff]/85 tabular-nums">
+                    {String((imgIdx % images.length) + 1).padStart(2, '0')}/
+                    {String(images.length).padStart(2, '0')}
+                  </div>
+                )}
+                <div className="absolute bottom-1 left-1.5 text-hud-2xs tracking-[0.3em] text-[#4cc9ff]/60">
+                  ◉ LIVE FEED
+                </div>
+              </div>
+            )}
+            <div className="flex-1 px-4 py-3 min-w-0 flex flex-col justify-center">
+              {phase === 'story' && current && (
+                <div className="text-hud-2xs tracking-[0.3em] text-[#cfe6ff]/70 tabular-nums uppercase">
+                  {locationLabel(current)} · {fmtCoord(current.lat, 'N', 'S')} ·{' '}
+                  {fmtCoord(current.lon, 'E', 'W')}
+                  {current.countryCode ? ` · ${current.countryCode.toUpperCase()}` : ''}
                 </div>
               )}
-              <div className="absolute bottom-1.5 left-2 text-hud-2xs tracking-[0.3em] text-[#4cc9ff]/60">
-                ◉ LIVE FEED
-              </div>
+              {subtitle && (
+                <div
+                  key={`${phase}-${index}`}
+                  className="briefing-sub mt-1.5 text-hud-sm normal-case tracking-normal leading-relaxed text-[#dfeeff]/90"
+                >
+                  {subtitle}
+                </div>
+              )}
+              {phase === 'story' && current?.url && (
+                <a
+                  href={current.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 text-hud-2xs tracking-[0.25em] uppercase text-[#4cc9ff] hover:text-[#7be0ff]"
+                >
+                  OPEN ARTICLE →
+                </a>
+              )}
             </div>
-          )
-        })()}
-
-        {/* Subtitle: the narration JARVIS is speaking */}
-        {phase === 'story' && narrations[index] && (
-          <div
-            key={index}
-            className="briefing-sub mt-2.5 mx-auto max-w-[30rem] text-hud-sm normal-case tracking-normal leading-relaxed text-[#dfeeff]/90"
-          >
-            {narrations[index]}
           </div>
-        )}
-        {phase === 'intro' && introText && (
-          <div className="briefing-sub mt-2.5 mx-auto max-w-[30rem] text-hud-sm normal-case tracking-normal leading-relaxed text-[#dfeeff]/90">
-            {introText}
-          </div>
-        )}
-        {phase === 'outro' && outroText && (
-          <div className="briefing-sub mt-2.5 mx-auto max-w-[30rem] text-hud-sm normal-case tracking-normal leading-relaxed text-[#dfeeff]/90">
-            {outroText}
-          </div>
-        )}
-
-        {/* Segmented progress dots */}
-        {total > 0 && (
-          <div className="mt-2.5 flex justify-center gap-1.5">
-            {stories.map((_, i) => (
-              <span
-                key={i}
-                className="h-0.5 w-8 transition-all duration-300"
-                style={{
-                  background: i < index ? '#4cc9ff80' : i === index ? '#7be0ff' : '#4cc9ff20',
-                  boxShadow: i === index ? '0 0 8px #7be0ff' : undefined,
-                }}
-              />
-            ))}
-          </div>
-        )}
-
-        <button
-          onClick={handleAbort}
-          className="pointer-events-auto mt-3 text-hud-xs tracking-[0.3em] text-[#ff8f6b]/80 hover:text-[#ffb59a] border border-[#ff8f6b]/30 hover:border-[#ff8f6b]/60 px-3 py-1"
-        >
-          ◢ ABORT
-        </button>
-      </div>
-    </div>
+        </div>
+      )}
+    </>
   )
 }
