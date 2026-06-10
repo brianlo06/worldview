@@ -28,11 +28,17 @@ describe('pickBreaking', () => {
   })
 
   it('sorts by importance, then recency', () => {
-    const picked = pickBreaking([
-      dot({ title: 'older-high', importance: 0.9, occurredAt: '2026-06-09T00:00:00Z' }),
-      dot({ title: 'low', importance: 0.3, category: 'business' }),
-      dot({ title: 'newer-high', importance: 0.9, occurredAt: '2026-06-10T00:00:00Z' }),
-    ])
+    const now = Date.parse('2026-06-10T01:00:00Z')
+    const picked = pickBreaking(
+      [
+        dot({ title: 'older-high', importance: 0.9, occurredAt: '2026-06-09T23:00:00Z' }),
+        dot({ title: 'low', importance: 0.3, category: 'business' }),
+        dot({ title: 'newer-high', importance: 0.9, occurredAt: '2026-06-10T00:30:00Z' }),
+      ],
+      6,
+      2,
+      now,
+    )
     expect(picked.map((d) => d.title)).toEqual(['newer-high', 'older-high', 'low'])
   })
 
@@ -58,5 +64,20 @@ describe('pickBreaking', () => {
       dot({ category: i % 2 ? 'politics' : 'conflict' }),
     )
     expect(pickBreaking(dots, 4).length).toBe(4)
+  })
+
+  it('drops items idle for more than MAX_AGE_MS, keeps undated ones', () => {
+    const now = Date.parse('2026-06-10T12:00:00Z')
+    const picked = pickBreaking(
+      [
+        dot({ title: 'stale', occurredAt: '2026-06-10T01:00:00Z' }),
+        dot({ title: 'fresh', occurredAt: '2026-06-10T11:00:00Z' }),
+        dot({ title: 'undated (seed)', category: 'conflict' }),
+      ],
+      6,
+      2,
+      now,
+    )
+    expect(picked.map((d) => d.title)).toEqual(['fresh', 'undated (seed)'])
   })
 })
