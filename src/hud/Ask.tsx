@@ -15,6 +15,9 @@ import {
 } from '../api/client'
 import { audio } from '../audio/audio'
 import { speak } from '../audio/voice'
+import { AskAnswerCard, type ShareStatus } from './AskAnswerCard'
+import { CityPicker, type CityOption } from './CityPicker'
+import { readParams, writeParams } from './askUrl'
 
 interface Chip {
   label: string
@@ -27,30 +30,7 @@ const CHIPS: Chip[] = [
   { label: 'Biggest story right now', q: 'biggest story right now' },
 ]
 
-// Fallback when geolocation is denied/unavailable — a manual city picker.
-const CITY_FALLBACKS: { label: string; lat: number; lon: number }[] = [
-  { label: 'New York', lat: 40.71, lon: -74.0 },
-  { label: 'London', lat: 51.51, lon: -0.13 },
-  { label: 'Tokyo', lat: 35.68, lon: 139.69 },
-  { label: 'Paris', lat: 48.85, lon: 2.35 },
-]
-
 type Status = 'idle' | 'pending' | 'error'
-
-function readParams(): URLSearchParams {
-  return new URLSearchParams(window.location.search)
-}
-
-function writeParams(next: Record<string, string | null>) {
-  const params = readParams()
-  for (const [k, v] of Object.entries(next)) {
-    if (v == null || v === '') params.delete(k)
-    else params.set(k, v)
-  }
-  const qs = params.toString()
-  const url = qs ? `${window.location.pathname}?${qs}` : window.location.pathname
-  window.history.replaceState(null, '', url)
-}
 
 export function Ask() {
   const setFlyToTarget = useAppStore((s) => s.setFlyToTarget)
@@ -62,7 +42,7 @@ export function Ask() {
   const [answer, setAnswer] = useState<AskAnswer | null>(null)
   const [askedQuestion, setAskedQuestion] = useState<string | null>(null)
   const [shareUrl, setShareUrl] = useState<string | null>(null)
-  const [shareStatus, setShareStatus] = useState<Status | 'copied'>('idle')
+  const [shareStatus, setShareStatus] = useState<ShareStatus>('idle')
   const [showCityPicker, setShowCityPicker] = useState(false)
   // arrivedFromShare: came in via a ?ask deep link → prompt them to ask their own.
   const [arrivedFromShare, setArrivedFromShare] = useState(false)
@@ -224,7 +204,7 @@ export function Ask() {
     )
   }
 
-  function onPickCity(city: { label: string; lat: number; lon: number }) {
+  function onPickCity(city: CityOption) {
     audio.click()
     setQuestion(`From ${city.label}`)
     void runAsk(`whats happening near ${city.label}`, {
@@ -410,97 +390,17 @@ export function Ask() {
       )}
 
       {/* Manual city picker (geolocation denied/unavailable) */}
-      {showCityPicker && !hasAnswer && (
-        <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5">
-          <span className="text-hud-2xs tracking-[0.2em] text-[#4cc9ff]/60">
-            PICK A CITY:
-          </span>
-          {CITY_FALLBACKS.map((c) => (
-            <button
-              key={c.label}
-              type="button"
-              onClick={() => onPickCity(c)}
-              className="border border-[#4cc9ff]/30 bg-[#02040a]/70 px-2.5 py-1 text-hud-2xs tracking-[0.15em] text-[#cfe6ff]/85 hover:border-[#7be0ff]/60 hover:bg-[#4cc9ff]/8 transition"
-            >
-              {c.label}
-            </button>
-          ))}
-        </div>
-      )}
+      {showCityPicker && !hasAnswer && <CityPicker onPick={onPickCity} />}
 
       {/* Answer card */}
-      {hasAnswer && (
-        <div className="mt-2 border border-[#4cc9ff]/40 bg-[#02040a]/85 backdrop-blur-sm px-3 py-2.5">
-          <div className="flex items-center gap-2 text-hud-2xs tracking-[0.22em] text-[#4cc9ff]/70 uppercase">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#7be0ff] shadow-[0_0_6px_#7be0ff]" />
-            <span>WORLDVIEW</span>
-            {answer!.place && <span className="opacity-60">· {answer!.place}</span>}
-            <span className="ml-auto opacity-45">{answer!.source}</span>
-          </div>
-          <div className="mt-1.5 text-hud-sm normal-case tracking-normal leading-relaxed text-[#dfeeff] max-h-[22vh] overflow-y-auto">
-            {answer!.answer}
-          </div>
-
-          {/* Nearby / related stories — click any to fly there and open it.
-              This is what makes "view from your city" surface several results. */}
-          {answer!.results.length > 1 && (
-            <ul className="mt-2 border-t border-[#4cc9ff]/15 pt-2 space-y-0.5 max-h-[30vh] overflow-y-auto pr-1">
-              {answer!.results.map((r, i) => (
-                <li
-                  key={r.id ?? i}
-                  onClick={() => selectResult(r)}
-                  className="group flex items-start gap-2 px-1.5 py-1 cursor-pointer hover:bg-[#4cc9ff]/8 transition"
-                >
-                  <span
-                    className="inline-block w-1.5 h-1.5 rounded-full mt-[6px] flex-shrink-0 bg-[#4cc9ff]"
-                    style={{ boxShadow: '0 0 5px #4cc9ff90' }}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-hud-sm normal-case tracking-normal leading-snug text-[#dfeeff] line-clamp-2 group-hover:text-[#eaf4ff]">
-                      {r.title}
-                    </div>
-                    <div className="text-hud-2xs opacity-50 normal-case tracking-wide mt-0.5 flex items-center gap-1.5">
-                      {r.place && <span>{r.place}</span>}
-                      {r.place && r.sourceOutlet && <span className="opacity-60">·</span>}
-                      {r.sourceOutlet && <span className="truncate">{r.sourceOutlet}</span>}
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <div className="mt-2.5 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onShare}
-              disabled={shareStatus === 'pending'}
-              className="border border-[#7be0ff]/50 bg-[#4cc9ff]/8 px-2.5 py-1 text-hud-2xs tracking-[0.2em] text-[#7be0ff] hover:bg-[#4cc9ff]/15 transition disabled:opacity-50"
-            >
-              {shareStatus === 'pending' ? 'CREATING…' : '⇪ SHARE'}
-            </button>
-            {shareStatus === 'copied' && (
-              <span className="text-hud-2xs tracking-[0.2em] text-[#9affb2]">
-                ✓ LINK COPIED
-              </span>
-            )}
-            {shareStatus === 'error' && (
-              <span className="text-hud-2xs tracking-[0.2em] text-[#ff8888]">
-                SHARE FAILED
-              </span>
-            )}
-            {shareUrl && (
-              <a
-                href={shareUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-hud-2xs tracking-wide normal-case text-[#4cc9ff]/80 hover:text-[#7be0ff] truncate"
-              >
-                {shareUrl.replace(/^https?:\/\//, '')}
-              </a>
-            )}
-          </div>
-        </div>
+      {answer && (
+        <AskAnswerCard
+          answer={answer}
+          shareUrl={shareUrl}
+          shareStatus={shareStatus}
+          onShare={() => void onShare()}
+          onSelectResult={(r) => void selectResult(r)}
+        />
       )}
 
       {status === 'error' && !hasAnswer && (
