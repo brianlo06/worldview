@@ -19,13 +19,7 @@ function relativeTime(t: number | null, now: number): string {
 }
 
 // Top-right: clock, feed status, mode toggles, and the significance-tier filter.
-export function ControlsPanel({
-  briefingActive,
-  onStartBriefing,
-}: {
-  briefingActive: boolean
-  onStartBriefing: () => void
-}) {
+export function ControlsPanel() {
   const now = useCurrentTime()
   const [muted, setMuted] = useState(() => audio.isMuted())
   const layers = useAppStore((s) => s.activeLayers)
@@ -84,19 +78,6 @@ export function ControlsPanel({
           title={layerMode === 'clusters' ? 'Showing clusters · click for raw events' : 'Showing raw events · click for clusters'}
         >
           {layerMode === 'clusters' ? '◉ CLUSTERS' : '◯ EVENTS'}
-        </button>
-        <button
-          type="button"
-          onClick={onStartBriefing}
-          disabled={briefingActive}
-          className={`border px-2 py-1 text-hud-xs transition ${
-            briefingActive
-              ? 'border-[#7be0ff] bg-[#4cc9ff]/15 text-[#cfe6ff] cursor-not-allowed'
-              : 'border-[#4cc9ff]/40 text-[#4cc9ff]/90 hover:bg-[#4cc9ff]/10'
-          }`}
-          title="JARVIS reads the top 5 stories while the globe flies to each"
-        >
-          {briefingActive ? '◐ BRIEFING · LIVE' : '◯ BRIEFING'}
         </button>
         <button
           type="button"

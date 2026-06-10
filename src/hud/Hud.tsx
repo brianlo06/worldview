@@ -57,7 +57,10 @@ export function Hud() {
         }`}
       >
         <div className="w-full max-w-[34rem]">
-          <Ask />
+          <Ask
+            briefingActive={briefingActive}
+            onStartBriefing={() => setBriefingActive(true)}
+          />
         </div>
       </div>
 
@@ -70,10 +73,7 @@ export function Hud() {
       <BreakingPanel />
 
       {/* Top-right */}
-      <ControlsPanel
-        briefingActive={briefingActive}
-        onStartBriefing={() => setBriefingActive(true)}
-      />
+      <ControlsPanel />
 
       {/* Right column: anomaly cards */}
       <AnomalyPanel />

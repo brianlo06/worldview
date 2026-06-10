@@ -19,20 +19,15 @@ import { AskAnswerCard, type ShareStatus } from './AskAnswerCard'
 import { CityPicker, type CityOption } from './CityPicker'
 import { readParams, writeParams } from './askUrl'
 
-interface Chip {
-  label: string
-  q: string
-}
-
-// General-public phrasing, not OSINT-speak. These line up with the backend's
-// pre-baked + intent-normalized cache keys, so they're warm and cheap.
-const CHIPS: Chip[] = [
-  { label: 'Biggest story right now', q: 'biggest story right now' },
-]
-
 type Status = 'idle' | 'pending' | 'error'
 
-export function Ask() {
+export function Ask({
+  briefingActive,
+  onStartBriefing,
+}: {
+  briefingActive: boolean
+  onStartBriefing: () => void
+}) {
   const setFlyToTarget = useAppStore((s) => s.setFlyToTarget)
   const setSelectedEntity = useAppStore((s) => s.setSelectedEntity)
   const apiStatus = useAppStore((s) => s.apiStatus)
@@ -163,12 +158,6 @@ export function Ask() {
     setShareUrl(null)
     setShowCityPicker(false)
     writeParams({ ask: null, lat: null, lon: null, cluster: null })
-  }
-
-  function onChip(c: Chip) {
-    audio.click()
-    setQuestion(c.label)
-    void runAsk(c.q, { kind: 'ask' })
   }
 
   // Prefill the input with "What's happening in " and focus it so the user
@@ -364,22 +353,23 @@ export function Ask() {
         )}
       </div>
 
-      {/* Onboarding: chips + "view from your city" */}
+      {/* Onboarding: briefing + "what's happening in" + "view from your city" */}
       {showOnboarding && !showCityPicker && (
         <div className="mt-2 flex flex-col items-center gap-1.5">
-          {/* Row 1: quick chips side by side */}
+          {/* Row 1: quick actions side by side */}
           <div className="flex flex-wrap items-center justify-center gap-1.5">
-            {CHIPS.map((c) => (
-              <button
-                key={c.q}
-                type="button"
-                onClick={() => onChip(c)}
-                disabled={offline}
-                className="border border-[#4cc9ff]/30 bg-[#02040a]/70 px-2.5 py-1 text-hud-2xs tracking-[0.15em] text-[#cfe6ff]/85 hover:border-[#7be0ff]/60 hover:bg-[#4cc9ff]/8 transition disabled:opacity-40"
-              >
-                {c.label}
-              </button>
-            ))}
+            <button
+              type="button"
+              onClick={() => {
+                audio.click()
+                onStartBriefing()
+              }}
+              disabled={offline || briefingActive}
+              title="JARVIS reads the top 5 stories while the globe flies to each"
+              className="border border-[#4cc9ff]/30 bg-[#02040a]/70 px-2.5 py-1 text-hud-2xs tracking-[0.15em] text-[#cfe6ff]/85 hover:border-[#7be0ff]/60 hover:bg-[#4cc9ff]/8 transition disabled:opacity-40"
+            >
+              {briefingActive ? '◐ Briefing · live' : '◉ Play the briefing'}
+            </button>
             <button
               type="button"
               onClick={onWhatsHappeningPrompt}
