@@ -52,8 +52,10 @@ export function Hud() {
           either — screen-centering would collide with the controls. On narrow
           desktops the panel shrinks to the gap; on wide ones it caps at 34rem. */}
       <div
-        className={`absolute left-[26rem] right-[33rem] flex justify-center ${
-          apiStatus === 'offline' ? 'top-[5.5rem]' : 'top-[2.25rem]'
+        className={`absolute flex justify-center left-4 right-4 lg:left-[26rem] lg:right-[33rem] ${
+          apiStatus === 'offline'
+            ? 'top-[8rem] lg:top-[5.5rem]'
+            : 'top-[5rem] lg:top-[2.25rem]'
         }`}
       >
         <div className="w-full max-w-[34rem]">
@@ -65,7 +67,7 @@ export function Hud() {
       </div>
 
       {/* Bottom-center: camera telemetry */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-none">
+      <div className="absolute bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 pointer-events-none">
         <TelemetryReadout />
       </div>
 

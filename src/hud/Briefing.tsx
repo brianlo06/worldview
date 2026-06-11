@@ -375,7 +375,7 @@ export function Briefing({ onClose }: BriefingProps) {
               animation: 'pulse 1.4s ease-in-out infinite',
             }}
           />
-          <span className="text-hud-xs tracking-[0.42em] text-[#4cc9ff]/80">
+          <span className="hidden sm:inline text-hud-xs tracking-[0.42em] text-[#4cc9ff]/80">
             TOP STORIES BRIEFING
           </span>
           <span className="text-hud-xs text-[#7be0ff] tabular-nums tracking-[0.2em]">
@@ -389,7 +389,7 @@ export function Briefing({ onClose }: BriefingProps) {
             {statusWord}
           </span>
           {total > 0 && (
-            <span className="flex gap-1">
+            <span className="hidden sm:flex gap-1">
               {stories.map((_, i) => (
                 <span
                   key={i}
@@ -404,7 +404,7 @@ export function Briefing({ onClose }: BriefingProps) {
           )}
           <button
             onClick={handleAbort}
-            className="text-hud-2xs tracking-[0.3em] text-[#ff8f6b]/80 hover:text-[#ffb59a] border border-[#ff8f6b]/30 hover:border-[#ff8f6b]/60 px-2 py-0.5"
+            className="text-hud-2xs tracking-[0.3em] text-[#ff8f6b]/80 hover:text-[#ffb59a] border border-[#ff8f6b]/30 hover:border-[#ff8f6b]/60 px-2 py-1.5 sm:py-0.5"
           >
             ◢ ABORT
           </button>
@@ -428,15 +428,15 @@ export function Briefing({ onClose }: BriefingProps) {
       {/* Lower-third: visual feed + narration, broadcast style. Sits above
           the telemetry readout, leaving the globe center unobstructed. */}
       {(subtitle || feedSrc) && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-[4.5rem] z-[900] flex justify-center px-4">
+        <div className="pointer-events-none fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-[900] flex justify-center px-4">
           <div
-            className={`briefing-lower-in pointer-events-auto holo-frame border border-[#7be0ff]/40 bg-[#02040a]/85 backdrop-blur-sm flex items-stretch w-[52rem] max-w-full overflow-hidden text-left ${
+            className={`briefing-lower-in pointer-events-auto holo-frame border border-[#7be0ff]/40 bg-[#02040a]/85 backdrop-blur-sm flex flex-col sm:flex-row sm:items-stretch w-[52rem] max-w-full overflow-hidden text-left ${
               captionDone && phase === 'outro' ? 'briefing-lower-out' : ''
             }`}
             style={{ boxShadow: '0 0 24px rgba(124,224,255,0.2)' }}
           >
             {feedSrc && (
-              <div className="relative w-72 flex-shrink-0 min-h-[10.5rem] overflow-hidden border-r border-[#4cc9ff]/25 bg-[#02040a]">
+              <div className="relative w-full h-32 sm:h-auto sm:w-72 flex-shrink-0 sm:min-h-[10.5rem] overflow-hidden border-b sm:border-b-0 sm:border-r border-[#4cc9ff]/25 bg-[#02040a]">
                 <img
                   key={feedSrc}
                   src={feedSrc}

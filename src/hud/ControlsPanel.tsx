@@ -93,7 +93,7 @@ export function ControlsPanel() {
         <button
           type="button"
           onClick={() => setLayerMode(layerMode === 'clusters' ? 'events' : 'clusters')}
-          className={`border px-2 py-1 text-hud-xs transition ${
+          className={`border px-2 py-2 sm:py-1 text-hud-xs transition ${
             layerMode === 'clusters'
               ? 'border-[#7be0ff] bg-[#4cc9ff]/15 text-[#cfe6ff]'
               : 'border-[#4cc9ff]/40 text-[#4cc9ff]/90 hover:bg-[#4cc9ff]/10'
@@ -106,7 +106,7 @@ export function ControlsPanel() {
         <button
           type="button"
           onClick={() => setTourMode(!tourMode)}
-          className={`border px-2 py-1 text-hud-xs transition ${
+          className={`border px-2 py-2 sm:py-1 text-hud-xs transition ${
             tourMode
               ? 'border-[#7be0ff] bg-[#4cc9ff]/15 text-[#cfe6ff]'
               : 'border-[#4cc9ff]/40 text-[#4cc9ff]/90 hover:bg-[#4cc9ff]/10'
@@ -118,7 +118,7 @@ export function ControlsPanel() {
         <button
           type="button"
           onClick={() => setAutoPulse(!autoPulse)}
-          className={`border px-2 py-1 text-hud-xs transition ${
+          className={`border px-2 py-2 sm:py-1 text-hud-xs transition ${
             autoPulse
               ? 'border-[#ff8e5a] bg-[#ff8e5a]/15 text-[#ffb59a]'
               : 'border-[#4cc9ff]/40 text-[#4cc9ff]/90 hover:bg-[#4cc9ff]/10'
@@ -130,7 +130,7 @@ export function ControlsPanel() {
         <button
           type="button"
           onClick={toggleMute}
-          className="border border-[#4cc9ff]/40 px-2 py-1 text-hud-xs text-[#4cc9ff]/90 hover:bg-[#4cc9ff]/10 transition"
+          className="border border-[#4cc9ff]/40 px-2 py-2 sm:py-1 text-hud-xs text-[#4cc9ff]/90 hover:bg-[#4cc9ff]/10 transition"
           aria-pressed={!muted}
         >
           {muted ? '✕ SND' : '◉ SND'}
@@ -148,7 +148,7 @@ export function ControlsPanel() {
               onClick={() => setSignificanceTier(t.id)}
               title={t.description}
               aria-pressed={active}
-              className={`px-2 py-[3px] text-hud-2xs tracking-[0.18em] transition ${
+              className={`px-2 py-2 sm:py-[3px] text-hud-2xs tracking-[0.18em] transition ${
                 active
                   ? 'bg-[#4cc9ff]/15 text-[#dfeeff]'
                   : 'text-[#4cc9ff]/55 hover:bg-[#4cc9ff]/8 hover:text-[#cfe6ff]'

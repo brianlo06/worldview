@@ -331,9 +331,10 @@ export function Hologram({ src, fallbackSrc, index, total, label }: HologramProp
       : 'ARCHIVE PROJECTION'
 
   return (
-    // Anchored below the top-right controls stack (clock/toggles/tier
-    // filter end ~13-16rem down) so the projection never overlaps it.
-    <div className="pointer-events-none fixed right-6 top-[58%] -translate-y-1/2 z-[890] hidden md:flex w-64 flex-col">
+    // Desktop: anchored below the top-right controls stack (clock/toggles/
+    // tier filter end ~13-16rem down) so the projection never overlaps it.
+    // Mobile: compact corner version, lower-right above the lower-third.
+    <div className="pointer-events-none fixed z-[890] flex flex-col right-2 bottom-[16rem] w-28 md:bottom-auto md:right-6 md:top-[58%] md:-translate-y-1/2 md:w-64">
       {/* Header */}
       <div className="flex items-center gap-2 text-hud-2xs tracking-[0.3em] text-[#4cc9ff]/80">
         <span className="text-[#7be0ff]">◢</span>
@@ -430,7 +431,7 @@ export function Hologram({ src, fallbackSrc, index, total, label }: HologramProp
       </div>
 
       {/* Status + caption (briefing-sub: fade in on each story remount) */}
-      <div className="briefing-sub mt-1.5 flex items-center gap-1.5 text-hud-2xs tracking-[0.25em] text-[#4cc9ff]/75">
+      <div className="briefing-sub mt-1.5 hidden md:flex items-center gap-1.5 text-hud-2xs tracking-[0.25em] text-[#4cc9ff]/75">
         <span
           className="inline-block w-1 h-1 rounded-full flex-shrink-0"
           style={{
@@ -441,7 +442,7 @@ export function Hologram({ src, fallbackSrc, index, total, label }: HologramProp
         />
         <span>{status}</span>
       </div>
-      <div className="briefing-sub mt-0.5 text-hud-2xs tracking-[0.2em] text-[#cfe6ff]/55 uppercase truncate">
+      <div className="briefing-sub mt-0.5 hidden md:block text-hud-2xs tracking-[0.2em] text-[#cfe6ff]/55 uppercase truncate">
         {label}
       </div>
     </div>
