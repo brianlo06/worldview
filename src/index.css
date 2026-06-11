@@ -263,6 +263,21 @@ canvas {
   animation: holoResolve 900ms ease-out both;
 }
 
+/* Attract pulse: draws the eye to the briefing chip until first use. */
+@keyframes attractPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 rgba(124, 224, 255, 0);
+    border-color: rgba(76, 201, 255, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 14px rgba(124, 224, 255, 0.45);
+    border-color: rgba(124, 224, 255, 0.85);
+  }
+}
+.briefing-attract {
+  animation: attractPulse 2.6s ease-in-out infinite;
+}
+
 /* Markets ticker: a single track that translates leftward forever. The
    content is rendered twice (back-to-back), so when the first copy has
    fully scrolled out of view the second copy is in the same position the

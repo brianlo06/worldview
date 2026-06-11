@@ -1,5 +1,6 @@
 import { Suspense, lazy, useState } from 'react'
 import { Hud } from './hud/Hud'
+import { Greeting } from './hud/Greeting'
 import { BootScreen } from './boot/BootScreen'
 
 // Three.js (~600 KB) is reachable only through Globe → scene/* files. Lazy
@@ -19,6 +20,8 @@ export default function App() {
         <Globe />
       </Suspense>
       <Hud />
+      {/* JARVIS greets right after the boot screen clears — typed + spoken */}
+      {booted && <Greeting />}
       {!booted && <BootScreen onComplete={() => setBooted(true)} />}
     </div>
   )

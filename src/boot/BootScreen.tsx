@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import { audio } from '../audio/audio'
-import { speak } from '../audio/voice'
+import { prefetchSpeech } from '../audio/voice'
+import { buildGreeting } from '../hud/greetingText'
 
 interface BootLine {
   label: string
@@ -56,17 +57,21 @@ export function BootScreen({ onComplete }: { onComplete: () => void }) {
   function dismiss() {
     if (fading) return
     setFading(true)
-    // First user gesture — boot the audio context here, then whoosh out
+    // First user gesture — boot the audio context here, then whoosh out.
+    // The greeting itself (typed + spoken) is owned by hud/Greeting.tsx,
+    // which mounts as soon as onComplete flips `booted`.
     audio.start()
     audio.whoosh(0.4)
-    // JARVIS-style hello — fires after a brief beat so the whoosh sits first
-    setTimeout(() => speak('Good evening. Worldview is online.'), 350)
     setTimeout(onComplete, 550)
   }
 
   // After the log finishes, any click or keypress dismisses
   useEffect(() => {
     if (!allDone) return
+    // Warm the neural-speech cache for the greeting while the "click to
+    // continue" prompt idles — by the time the user clicks, the line plays
+    // instantly instead of waiting on a cold synth.
+    prefetchSpeech(buildGreeting())
     const onAny = () => dismiss()
     window.addEventListener('keydown', onAny)
     window.addEventListener('click', onAny)

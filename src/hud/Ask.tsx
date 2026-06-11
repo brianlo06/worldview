@@ -4,8 +4,9 @@
 // whole thing hydrates from / writes to the URL so a shared link drops the
 // visitor straight back into the moment and invites them to ask their own.
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAppStore } from '../store/useAppStore'
+import { countryName } from '../globe/countries'
 import {
   askGlobe,
   createShare,
@@ -31,6 +32,23 @@ export function Ask({
   const setFlyToTarget = useAppStore((s) => s.setFlyToTarget)
   const setSelectedEntity = useAppStore((s) => s.setSelectedEntity)
   const apiStatus = useAppStore((s) => s.apiStatus)
+  const dots = useAppStore((s) => s.dots)
+
+  // Live-data suggestion: the country of the most important story on the
+  // globe right now becomes a one-tap concrete example of asking.
+  const hotCountry = useMemo(() => {
+    let top: (typeof dots)[number] | null = null
+    for (const d of dots) {
+      if (!d.countryCode) continue
+      if (!top || (d.importance ?? 0) > (top.importance ?? 0)) top = d
+    }
+    return top?.countryCode ? countryName(top.countryCode) : null
+  }, [dots])
+
+  // Attract pulse on the briefing chip until it's been used once, ever.
+  const [briefingUsed, setBriefingUsed] = useState(
+    () => localStorage.getItem('worldview:briefing-used') === '1',
+  )
 
   // Deep-link ask (?ask=… or its ?q alias), read once before first render so
   // the hydration effect below only runs async work — never synchronous
@@ -362,14 +380,38 @@ export function Ask({
               type="button"
               onClick={() => {
                 audio.click()
+                setBriefingUsed(true)
+                try {
+                  localStorage.setItem('worldview:briefing-used', '1')
+                } catch {
+                  // ignore
+                }
                 onStartBriefing()
               }}
               disabled={offline || briefingActive}
               title="JARVIS reads the top 5 stories while the globe flies to each"
-              className="border border-[#4cc9ff]/30 bg-[#02040a]/70 px-2.5 py-1 text-hud-2xs tracking-[0.15em] text-[#cfe6ff]/85 hover:border-[#7be0ff]/60 hover:bg-[#4cc9ff]/8 transition disabled:opacity-40"
+              className={`border border-[#4cc9ff]/30 bg-[#02040a]/70 px-2.5 py-1 text-hud-2xs tracking-[0.15em] text-[#cfe6ff]/85 hover:border-[#7be0ff]/60 hover:bg-[#4cc9ff]/8 transition disabled:opacity-40 ${
+                !briefingUsed && !briefingActive && !offline ? 'briefing-attract' : ''
+              }`}
             >
               {briefingActive ? '◐ Briefing · live' : '◉ Play the briefing'}
             </button>
+            {hotCountry && (
+              <button
+                type="button"
+                onClick={() => {
+                  audio.click()
+                  const q = `What's happening in ${hotCountry}?`
+                  setQuestion(q)
+                  void runAsk(q)
+                }}
+                disabled={offline}
+                title="The country of the biggest story on the globe right now"
+                className="border border-[#4cc9ff]/30 bg-[#02040a]/70 px-2.5 py-1 text-hud-2xs tracking-[0.15em] text-[#cfe6ff]/85 hover:border-[#7be0ff]/60 hover:bg-[#4cc9ff]/8 transition disabled:opacity-40"
+              >
+                ⚡ What's happening in {hotCountry}?
+              </button>
+            )}
             <button
               type="button"
               onClick={onWhatsHappeningPrompt}
