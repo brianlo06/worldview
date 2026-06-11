@@ -152,6 +152,11 @@ canvas {
 .holo-flicker {
   animation: holoSway 11s ease-in-out infinite, holoFlicker 6.5s steps(1) infinite;
 }
+/* Flicker without the CSS sway — for the 3D point-cloud mode, where the
+   rotation happens inside the WebGL canvas. */
+.holo-flicker-still {
+  animation: holoFlicker 6.5s steps(1) infinite;
+}
 /* Bright bar that sweeps down the projection like a refresh trace. */
 @keyframes holoSweep {
   0%   { top: -18%; opacity: 0; }
