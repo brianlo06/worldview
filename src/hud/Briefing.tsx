@@ -409,13 +409,13 @@ export function Briefing({ onClose }: BriefingProps) {
       {(subtitle || feedSrc) && (
         <div className="pointer-events-none fixed inset-x-0 bottom-[4.5rem] z-[900] flex justify-center px-4">
           <div
-            className={`briefing-lower-in pointer-events-auto holo-frame border border-[#7be0ff]/40 bg-[#02040a]/85 backdrop-blur-sm flex items-stretch w-[46rem] max-w-full overflow-hidden text-left ${
+            className={`briefing-lower-in pointer-events-auto holo-frame border border-[#7be0ff]/40 bg-[#02040a]/85 backdrop-blur-sm flex items-stretch w-[52rem] max-w-full overflow-hidden text-left ${
               captionDone && phase === 'outro' ? 'briefing-lower-out' : ''
             }`}
             style={{ boxShadow: '0 0 24px rgba(124,224,255,0.2)' }}
           >
             {feedSrc && (
-              <div className="relative w-60 flex-shrink-0 min-h-[8.5rem] overflow-hidden border-r border-[#4cc9ff]/25 bg-[#02040a]">
+              <div className="relative w-72 flex-shrink-0 min-h-[10.5rem] overflow-hidden border-r border-[#4cc9ff]/25 bg-[#02040a]">
                 <img
                   key={feedSrc}
                   src={feedSrc}
