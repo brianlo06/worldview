@@ -133,6 +133,12 @@ canvas {
   display: inline-block;
   white-space: pre;
   animation: briefingWordIn 340ms ease-out backwards;
+  transition: color 160ms ease-out, text-shadow 280ms ease-out;
+}
+/* Karaoke: lights up the moment JARVIS speaks the word. */
+.briefing-word-spoken {
+  color: #eef9ff;
+  text-shadow: 0 0 10px rgba(124, 224, 255, 0.75);
 }
 
 /* Once a caption has been fully spoken, the text column blur-fades away

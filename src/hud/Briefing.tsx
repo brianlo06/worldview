@@ -105,16 +105,18 @@ const sleep = (ms: number, signal: AbortSignal): Promise<void> =>
     }, { once: true })
   })
 
-// Caption text that materializes word by word as JARVIS speaks (each word
-// staggers in with a blur-fade), then blur-fades out as a block once the
-// narration is done. Keyed per story by the parent so the stagger restarts.
-function Caption({ text }: { text: string }) {
+// Caption text that materializes word by word (each word staggers in with a
+// blur-fade), lights up karaoke-style as JARVIS actually speaks each word
+// (spoken = highest spoken word index), then blur-fades out as a block once
+// the narration is done. Keyed per story by the parent so the stagger
+// restarts.
+function Caption({ text, spoken }: { text: string; spoken: number }) {
   return (
     <div className="mt-1.5 text-hud-sm normal-case tracking-normal leading-relaxed text-[#dfeeff]/90">
       {text.split(/\s+/).map((w, i) => (
         <span
           key={i}
-          className="briefing-word"
+          className={`briefing-word ${i <= spoken ? 'briefing-word-spoken' : ''}`}
           style={{ animationDelay: `${Math.min(i * 32, 1400)}ms` }}
         >
           {w + ' '}
@@ -140,6 +142,8 @@ export function Briefing({ onClose }: BriefingProps) {
   // True once the current caption has been fully spoken — drives the
   // transition-out so finished captions don't just sit there (or vanish).
   const [captionDone, setCaptionDone] = useState(false)
+  // Highest word index spoken so far in the current segment (karaoke sync).
+  const [spokenWord, setSpokenWord] = useState(-1)
   const abortRef = useRef(new AbortController())
 
   // Visual carousel: while a story is narrated, cycle through its cluster's
@@ -192,10 +196,12 @@ export function Briefing({ onClose }: BriefingProps) {
 
       // Intro
       audio.whoosh(0.5)
+      audio.startBed() // open-channel hum under the whole briefing
       setCaptionDone(false)
+      setSpokenWord(-1)
       await speak(
         script.intro || `Here are the top ${dots.length} stories at this hour.`,
-        { rate: 0.95 },
+        { rate: 0.95, onWord: setSpokenWord },
       )
       if (aborted()) return
       setCaptionDone(true) // intro caption fades during the handoff
@@ -212,6 +218,7 @@ export function Briefing({ onClose }: BriefingProps) {
         const { dot: d, narration } = script.stories[i]
         setIndex(i)
         setCaptionDone(false)
+        setSpokenWord(-1)
 
         // Visual feed: start with the story's own image, then pull the
         // cluster's member images in the background for the carousel.
@@ -238,7 +245,10 @@ export function Briefing({ onClose }: BriefingProps) {
         await sleep(250, ctrl.signal)
         if (aborted()) return
 
-        await speak(narration || fallbackNarration(d), { rate: 0.95 })
+        await speak(narration || fallbackNarration(d), {
+          rate: 0.95,
+          onWord: setSpokenWord,
+        })
         if (aborted()) return
         // Caption's been read — let it transition out during the pause.
         setCaptionDone(true)
@@ -251,9 +261,14 @@ export function Briefing({ onClose }: BriefingProps) {
       setImages([])
       setPhase('outro')
       setCaptionDone(false)
+      setSpokenWord(-1)
       audio.whoosh(0.4)
-      await speak(script.outro || 'End of briefing.', { rate: 0.95 })
+      await speak(script.outro || 'End of briefing.', {
+        rate: 0.95,
+        onWord: setSpokenWord,
+      })
       if (aborted()) return
+      audio.stopBed()
       setCaptionDone(true) // the whole lower-third sinks away after the outro
       // Soft reset: glide back to the wide home view before the cleanup
       // hands the camera to the tour, so it resumes its idle spin from the
@@ -282,6 +297,7 @@ export function Briefing({ onClose }: BriefingProps) {
       // Abort on unmount or re-run.
       ctrl.abort()
       silence()
+      audio.stopBed()
       // Clear the story ring and hand the camera back to the tour if we
       // borrowed it. Runs on every exit path: done, abort, error, unmount.
       useAppStore.getState().setBriefingPin(null)
@@ -468,7 +484,7 @@ export function Briefing({ onClose }: BriefingProps) {
                   {current.countryCode ? ` · ${current.countryCode.toUpperCase()}` : ''}
                 </div>
               )}
-              {subtitle && <Caption text={subtitle} />}
+              {subtitle && <Caption text={subtitle} spoken={spokenWord} />}
               {phase === 'story' && current?.url && (
                 <a
                   href={current.url}

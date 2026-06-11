@@ -2,7 +2,7 @@ import type { DotRecord } from '../globe/dots'
 import type { Category } from '../globe/categories'
 import type { SignificanceTier } from '../globe/tiers'
 
-const API_BASE =
+export const API_BASE =
   (import.meta.env.VITE_API_BASE as string | undefined) ?? 'http://127.0.0.1:8088'
 
 const DEFAULT_TIMEOUT_MS = 8000
