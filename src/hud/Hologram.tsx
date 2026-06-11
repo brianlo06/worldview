@@ -331,7 +331,9 @@ export function Hologram({ src, fallbackSrc, index, total, label }: HologramProp
       : 'ARCHIVE PROJECTION'
 
   return (
-    <div className="pointer-events-none fixed right-6 top-1/2 -translate-y-1/2 z-[890] hidden md:flex w-56 flex-col">
+    {/* Anchored below the top-right controls stack (clock/toggles/tier
+        filter end ~13-16rem down) so the projection never overlaps it. */}
+    <div className="pointer-events-none fixed right-6 top-[58%] -translate-y-1/2 z-[890] hidden md:flex w-64 flex-col">
       {/* Header */}
       <div className="flex items-center gap-2 text-hud-2xs tracking-[0.3em] text-[#4cc9ff]/80">
         <span className="text-[#7be0ff]">◢</span>
