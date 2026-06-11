@@ -1,5 +1,5 @@
 // Rotating "tactical hologram" for the briefing: an AI-rendered scene of the
-// current story, projected JARVIS-style on the left of the screen — emitter
+// current story, projected JARVIS-style on the right of the screen — emitter
 // base with expanding rings, light cone, 3D parallax sway, cyan duotone,
 // scanlines, sweep bar, flicker and glitch slices (keyframes in index.css).
 //
@@ -86,7 +86,7 @@ export function Hologram({ src, fallbackSrc, index, total, label }: HologramProp
       : 'ARCHIVE PROJECTION'
 
   return (
-    <div className="pointer-events-none fixed left-6 top-1/2 -translate-y-1/2 z-[890] hidden md:flex w-56 flex-col">
+    <div className="pointer-events-none fixed right-6 top-1/2 -translate-y-1/2 z-[890] hidden md:flex w-56 flex-col">
       {/* Header */}
       <div className="flex items-center gap-2 text-hud-2xs tracking-[0.3em] text-[#4cc9ff]/80">
         <span className="text-[#7be0ff]">◢</span>

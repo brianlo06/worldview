@@ -360,7 +360,7 @@ export function Briefing({ onClose }: BriefingProps) {
         </div>
       </div>
 
-      {/* Holographic scene reconstruction, projected stage-left while a
+      {/* Holographic scene reconstruction, projected stage-right while a
           story plays. Keyed by story so the projection re-materializes per
           headline instead of morphing between them. */}
       {phase === 'story' && current && (
