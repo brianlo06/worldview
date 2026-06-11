@@ -263,6 +263,33 @@ canvas {
   animation: holoResolve 900ms ease-out both;
 }
 
+/* Panel exit — symmetric counterpart to hud-panel-in, used via
+   useAnimatedPresence so popups animate out instead of vanishing. */
+@keyframes hudPanelOut {
+  to { opacity: 0; transform: translateY(10px); filter: blur(2px); }
+}
+.hud-panel-out {
+  animation: hudPanelOut 240ms ease-in forwards;
+}
+
+/* Hover glow-sweep for HUD chip buttons: a light band crosses on hover. */
+.hud-sweep {
+  position: relative;
+  overflow: hidden;
+}
+.hud-sweep::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 30%, rgba(124, 224, 255, 0.22) 50%, transparent 70%);
+  transform: translateX(-130%);
+  transition: transform 480ms ease;
+  pointer-events: none;
+}
+.hud-sweep:hover::after {
+  transform: translateX(130%);
+}
+
 /* Attract pulse: draws the eye to the briefing chip until first use. */
 @keyframes attractPulse {
   0%, 100% {

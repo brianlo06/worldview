@@ -1,8 +1,32 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAppStore } from '../store/useAppStore'
 import { audio } from '../audio/audio'
 import { TIERS } from '../globe/tiers'
 import { useCurrentTime } from './hooks'
+
+// Counter that rolls smoothly to a new value instead of snapping — the
+// event count ticking up on a refresh reads as live telemetry.
+function RollingNumber({ value }: { value: number }) {
+  const [display, setDisplay] = useState(value)
+  const fromRef = useRef(value)
+  useEffect(() => {
+    const from = fromRef.current
+    if (from === value) return
+    const t0 = performance.now()
+    const dur = 700
+    let raf = 0
+    const step = (now: number) => {
+      const t = Math.min(1, (now - t0) / dur)
+      const eased = 1 - Math.pow(1 - t, 3)
+      setDisplay(Math.round(from + (value - from) * eased))
+      if (t < 1) raf = requestAnimationFrame(step)
+      else fromRef.current = value
+    }
+    raf = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(raf)
+  }, [value])
+  return <>{display}</>
+}
 
 function formatUTC(d: Date) {
   return d.toISOString().replace('T', ' ').slice(0, 19) + ' UTC'
@@ -60,7 +84,7 @@ export function ControlsPanel() {
               ? '○ DEMO'
               : '◌ …'}
         </span>
-        {'  '}·{'  '}{eventCount} EVENTS{'  '}·{'  '}L{layers.size}
+        {'  '}·{'  '}<RollingNumber value={eventCount} /> EVENTS{'  '}·{'  '}L{layers.size}
       </div>
       <div className="text-hud-xs opacity-50">
         UPDATED {relativeTime(lastUpdated, now.getTime())}

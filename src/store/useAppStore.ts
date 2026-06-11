@@ -106,6 +106,11 @@ interface AppState {
   briefingPin: { lat: number; lon: number } | null
   setBriefingPin: (p: AppState['briefingPin']) => void
 
+  // Briefing constellation — arcs connecting the narrated story locations,
+  // drawn on the globe during the outro.
+  briefingArcs: { lat: number; lon: number }[] | null
+  setBriefingArcs: (a: AppState['briefingArcs']) => void
+
   // Market / currency snapshots — rendered in the right-side HUD panel,
   // not as dots on the globe
   markets: MarketSnapshot[]
@@ -195,6 +200,9 @@ export const useAppStore = create<AppState>()(
 
   briefingPin: null,
   setBriefingPin: (p) => set({ briefingPin: p }),
+
+  briefingArcs: null,
+  setBriefingArcs: (a) => set({ briefingArcs: a }),
 
   markets: [],
   setMarkets: (m) => set({ markets: m }),

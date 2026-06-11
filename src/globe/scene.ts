@@ -15,6 +15,7 @@ import { createTour } from './tour'
 import { colorFor } from './colorFor'
 import type { EarthTextures } from './textures'
 import { EARTH_RADIUS, computeSunDirection, latLonToVec3, vec3ToLatLon } from './coords'
+import { createConstellation } from './constellation'
 import { audio } from '../audio/audio'
 
 export interface SceneHandle {
@@ -34,6 +35,9 @@ export interface SceneHandle {
   spawnPulseAt(lat: number, lon: number, color?: string): void
   /** Set the active anomalies — renders sonar-ring markers floating above. */
   setAnomalyPins(pins: AnomalyPin[]): void
+  /** Draw (or clear, with null) the briefing constellation — animated arcs
+   *  connecting the narrated story locations. */
+  setConstellation(points: { lat: number; lon: number }[] | null): void
 }
 
 export interface CameraTelemetry {
@@ -125,6 +129,7 @@ export function createScene(
   const pulses = createPulses()
   const marker = createSelectionMarker()
   const anomalyMarkers = createAnomalyMarkers()
+  const constellation = createConstellation(scene)
 
   scene.add(earth.mesh)
   scene.add(atmosphere)
@@ -269,6 +274,7 @@ export function createScene(
     halos.update(elapsed, renderer.getPixelRatio())
     pulses.update(elapsed)
     anomalyMarkers.update(elapsed)
+    constellation.update(elapsed)
     marker.update(elapsed, camera)
 
     const sunDir = computeSunDirection(now)
@@ -371,6 +377,9 @@ export function createScene(
     },
     setAnomalyPins(pins) {
       anomalyMarkers.setAnomalies(pins)
+    },
+    setConstellation(points) {
+      constellation.set(points, elapsedNow())
     },
   }
 }

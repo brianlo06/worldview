@@ -1,19 +1,24 @@
 import { useAppStore } from '../store/useAppStore'
 import { locationLabel } from '../globe/countries'
 import { ShareButton } from './ShareButton'
+import { useAnimatedPresence } from './hooks'
 
 const SELECTION_TOP_OFFSET = '5.5rem'
 
 // Bottom-right: detail card for the selected event/cluster.
 export function SelectionCard() {
-  const selected = useAppStore((s) => s.selectedEntity)
+  const selectedNow = useAppStore((s) => s.selectedEntity)
   const setSelectedEntity = useAppStore((s) => s.setSelectedEntity)
+  // Linger through the exit animation instead of popping out of existence.
+  const { shown: selected, closing } = useAnimatedPresence(selectedNow)
 
   if (!selected) return null
 
   return (
     <div
-      className="pointer-events-auto border border-[#4cc9ff]/50 bg-[#02040a]/80 backdrop-blur-sm text-[#cfe6ff] holo-frame flex flex-col"
+      className={`pointer-events-auto border border-[#4cc9ff]/50 bg-[#02040a]/80 backdrop-blur-sm text-[#cfe6ff] holo-frame flex flex-col hud-panel-in ${
+        closing ? 'hud-panel-out' : ''
+      }`}
       style={{
         position: 'absolute',
         right: '1rem',

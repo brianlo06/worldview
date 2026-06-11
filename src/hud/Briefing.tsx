@@ -130,6 +130,7 @@ export function Briefing({ onClose }: BriefingProps) {
   const setFlyToTarget = useAppStore((s) => s.setFlyToTarget)
   const setSelectedEntity = useAppStore((s) => s.setSelectedEntity)
   const setBriefingPin = useAppStore((s) => s.setBriefingPin)
+  const setBriefingArcs = useAppStore((s) => s.setBriefingArcs)
   const [phase, setPhase] = useState<Phase>('loading')
   const [stories, setStories] = useState<DotRecord[]>([])
   const [narrations, setNarrations] = useState<string[]>([])
@@ -262,6 +263,9 @@ export function Briefing({ onClose }: BriefingProps) {
       setPhase('outro')
       setCaptionDone(false)
       setSpokenWord(-1)
+      // Constellation: connect the five story locations with animated arcs
+      // while JARVIS wraps up — "that's the whole picture."
+      setBriefingArcs(dots.map((d) => ({ lat: d.lat, lon: d.lon })))
       audio.whoosh(0.4)
       await speak(script.outro || 'End of briefing.', {
         rate: 0.95,
@@ -301,6 +305,7 @@ export function Briefing({ onClose }: BriefingProps) {
       // Clear the story ring and hand the camera back to the tour if we
       // borrowed it. Runs on every exit path: done, abort, error, unmount.
       useAppStore.getState().setBriefingPin(null)
+      useAppStore.getState().setBriefingArcs(null)
       if (tourWasOn) useAppStore.getState().setTourMode(true)
       // Don't wipe selectedEntity on abort — user may want to keep it.
     }

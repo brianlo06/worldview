@@ -60,6 +60,7 @@ export function Globe() {
   const allDots = useAppStore((s) => s.dots)
   const anomalies = useAppStore((s) => s.anomalies)
   const briefingPin = useAppStore((s) => s.briefingPin)
+  const briefingArcs = useAppStore((s) => s.briefingArcs)
   const setAnomalies = useAppStore((s) => s.setAnomalies)
   const disabledCategories = useAppStore((s) => s.disabledCategories)
   const significanceTier = useAppStore((s) => s.significanceTier)
@@ -253,6 +254,13 @@ export function Globe() {
     if (briefingPin) pins.push({ lat: briefingPin.lat, lon: briefingPin.lon })
     sceneRef.current?.setAnomalyPins(pins)
   }, [ready, anomalies, briefingPin])
+
+  // Briefing constellation — arcs connecting the narrated story locations,
+  // drawn during the outro and cleared with the soft reset.
+  useEffect(() => {
+    if (!ready) return
+    sceneRef.current?.setConstellation(briefingArcs)
+  }, [ready, briefingArcs])
 
   // FlyTo action signal — applied once then cleared
   useEffect(() => {

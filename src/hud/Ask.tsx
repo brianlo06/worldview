@@ -18,6 +18,7 @@ import { audio } from '../audio/audio'
 import { speak } from '../audio/voice'
 import { AskAnswerCard, type ShareStatus } from './AskAnswerCard'
 import { CityPicker, type CityOption } from './CityPicker'
+import { useAnimatedPresence } from './hooks'
 import { readParams, writeParams } from './askUrl'
 
 type Status = 'idle' | 'pending' | 'error'
@@ -61,6 +62,8 @@ export function Ask({
   const [question, setQuestion] = useState(initialAskParam ?? '')
   const [status, setStatus] = useState<Status>('idle')
   const [answer, setAnswer] = useState<AskAnswer | null>(null)
+  // Answer card lingers through its exit animation when cleared.
+  const { shown: shownAnswer, closing: answerClosing } = useAnimatedPresence(answer)
   const [askedQuestion, setAskedQuestion] = useState<string | null>(null)
   const [shareUrl, setShareUrl] = useState<string | null>(null)
   const [shareStatus, setShareStatus] = useState<ShareStatus>('idle')
@@ -390,7 +393,7 @@ export function Ask({
               }}
               disabled={offline || briefingActive}
               title="JARVIS reads the top 5 stories while the globe flies to each"
-              className={`border border-[#4cc9ff]/30 bg-[#02040a]/70 px-2.5 py-1 text-hud-2xs tracking-[0.15em] text-[#cfe6ff]/85 hover:border-[#7be0ff]/60 hover:bg-[#4cc9ff]/8 transition disabled:opacity-40 ${
+              className={`hud-sweep border border-[#4cc9ff]/30 bg-[#02040a]/70 px-2.5 py-1 text-hud-2xs tracking-[0.15em] text-[#cfe6ff]/85 hover:border-[#7be0ff]/60 hover:bg-[#4cc9ff]/8 transition disabled:opacity-40 ${
                 !briefingUsed && !briefingActive && !offline ? 'briefing-attract' : ''
               }`}
             >
@@ -407,7 +410,7 @@ export function Ask({
                 }}
                 disabled={offline}
                 title="The country of the biggest story on the globe right now"
-                className="border border-[#4cc9ff]/30 bg-[#02040a]/70 px-2.5 py-1 text-hud-2xs tracking-[0.15em] text-[#cfe6ff]/85 hover:border-[#7be0ff]/60 hover:bg-[#4cc9ff]/8 transition disabled:opacity-40"
+                className="hud-sweep border border-[#4cc9ff]/30 bg-[#02040a]/70 px-2.5 py-1 text-hud-2xs tracking-[0.15em] text-[#cfe6ff]/85 hover:border-[#7be0ff]/60 hover:bg-[#4cc9ff]/8 transition disabled:opacity-40"
               >
                 ⚡ What's happening in {hotCountry}?
               </button>
@@ -416,7 +419,7 @@ export function Ask({
               type="button"
               onClick={onWhatsHappeningPrompt}
               disabled={offline}
-              className="border border-[#4cc9ff]/30 bg-[#02040a]/70 px-2.5 py-1 text-hud-2xs tracking-[0.15em] text-[#cfe6ff]/85 hover:border-[#7be0ff]/60 hover:bg-[#4cc9ff]/8 transition disabled:opacity-40"
+              className="hud-sweep border border-[#4cc9ff]/30 bg-[#02040a]/70 px-2.5 py-1 text-hud-2xs tracking-[0.15em] text-[#cfe6ff]/85 hover:border-[#7be0ff]/60 hover:bg-[#4cc9ff]/8 transition disabled:opacity-40"
             >
               What's happening in…
             </button>
@@ -426,7 +429,7 @@ export function Ask({
             type="button"
             onClick={onCityClick}
             disabled={offline}
-            className="border border-[#7be0ff]/50 bg-[#4cc9ff]/8 px-2.5 py-1 text-hud-2xs tracking-[0.15em] text-[#7be0ff] hover:bg-[#4cc9ff]/15 transition disabled:opacity-40"
+            className="hud-sweep border border-[#7be0ff]/50 bg-[#4cc9ff]/8 px-2.5 py-1 text-hud-2xs tracking-[0.15em] text-[#7be0ff] hover:bg-[#4cc9ff]/15 transition disabled:opacity-40"
           >
             ◎ VIEW FROM YOUR CITY
           </button>
@@ -437,14 +440,16 @@ export function Ask({
       {showCityPicker && !hasAnswer && <CityPicker onPick={onPickCity} />}
 
       {/* Answer card */}
-      {answer && (
-        <AskAnswerCard
-          answer={answer}
-          shareUrl={shareUrl}
-          shareStatus={shareStatus}
-          onShare={() => void onShare()}
-          onSelectResult={(r) => void selectResult(r)}
-        />
+      {shownAnswer && (
+        <div className={answerClosing ? 'hud-panel-out' : ''}>
+          <AskAnswerCard
+            answer={shownAnswer}
+            shareUrl={shareUrl}
+            shareStatus={shareStatus}
+            onShare={() => void onShare()}
+            onSelectResult={(r) => void selectResult(r)}
+          />
+        </div>
       )}
 
       {status === 'error' && !hasAnswer && (
