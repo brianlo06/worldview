@@ -16,6 +16,7 @@ import { useAppStore } from '../store/useAppStore'
 import { audio } from '../audio/audio'
 import { speak, silence } from '../audio/voice'
 import { countryName } from './../globe/countries'
+import { Hologram } from './Hologram'
 import type { DotRecord } from '../globe/dots'
 
 const STORY_COUNT = 5
@@ -89,7 +90,7 @@ async function clientFallbackScript(signal: AbortSignal): Promise<BriefingScript
     .slice(0, STORY_COUNT)
   return {
     intro: "The world's been busy — here's what's happening right now.",
-    stories: dots.map((d) => ({ dot: d, narration: fallbackNarration(d) })),
+    stories: dots.map((d) => ({ dot: d, narration: fallbackNarration(d), holoUrl: null })),
     outro: "That's the picture for now. I'll keep watch.",
     source: 'fallback',
   }
@@ -111,6 +112,7 @@ export function Briefing({ onClose }: BriefingProps) {
   const [phase, setPhase] = useState<Phase>('loading')
   const [stories, setStories] = useState<DotRecord[]>([])
   const [narrations, setNarrations] = useState<string[]>([])
+  const [holos, setHolos] = useState<(string | null)[]>([])
   const [introText, setIntroText] = useState('')
   const [outroText, setOutroText] = useState('')
   const [index, setIndex] = useState(0)
@@ -161,6 +163,7 @@ export function Briefing({ onClose }: BriefingProps) {
       const dots = script.stories.map((s) => s.dot)
       setStories(dots)
       setNarrations(script.stories.map((s) => s.narration))
+      setHolos(script.stories.map((s) => s.holoUrl))
       setIntroText(script.intro)
       setOutroText(script.outro)
       setPhase('intro')
@@ -356,6 +359,20 @@ export function Briefing({ onClose }: BriefingProps) {
           </button>
         </div>
       </div>
+
+      {/* Holographic scene reconstruction, projected stage-left while a
+          story plays. Keyed by story so the projection re-materializes per
+          headline instead of morphing between them. */}
+      {phase === 'story' && current && (
+        <Hologram
+          key={current.id}
+          src={holos[index] ?? null}
+          fallbackSrc={current.imageUrl ?? null}
+          index={index}
+          total={total}
+          label={locationLabel(current)}
+        />
+      )}
 
       {/* Lower-third: visual feed + narration, broadcast style. Sits above
           the telemetry readout, leaving the globe center unobstructed. */}

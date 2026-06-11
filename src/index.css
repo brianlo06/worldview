@@ -124,6 +124,93 @@ canvas {
   animation: briefingSubIn 500ms ease-out backwards;
 }
 
+/* Briefing hologram (hud/Hologram.tsx): a story scene projected as a rotating
+   volumetric hologram. Bob and sway are nested (outer/inner elements) because
+   both animate `transform` and would otherwise cancel each other. */
+@keyframes holoBob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-7px); }
+}
+.holo-bob {
+  animation: holoBob 7s ease-in-out infinite;
+}
+@keyframes holoSway {
+  0%, 100% { transform: rotateY(-22deg) rotateX(2deg); }
+  50%      { transform: rotateY(22deg) rotateX(-2deg); }
+}
+.holo-rotor {
+  animation: holoSway 11s ease-in-out infinite;
+}
+/* Projection instability: mostly steady, with brief dropouts. */
+@keyframes holoFlicker {
+  0%, 90%, 100% { opacity: 0.96; }
+  91% { opacity: 0.55; }
+  92% { opacity: 0.9; }
+  95% { opacity: 0.5; }
+  96% { opacity: 0.96; }
+}
+.holo-flicker {
+  animation: holoSway 11s ease-in-out infinite, holoFlicker 6.5s steps(1) infinite;
+}
+/* Bright bar that sweeps down the projection like a refresh trace. */
+@keyframes holoSweep {
+  0%   { top: -18%; opacity: 0; }
+  8%   { opacity: 0.7; }
+  92%  { opacity: 0.7; }
+  100% { top: 112%; opacity: 0; }
+}
+.holo-sweep {
+  background: linear-gradient(180deg, transparent, rgba(124, 224, 255, 0.35), transparent);
+  animation: holoSweep 4.2s linear infinite;
+}
+/* Rare horizontal glitch: a displaced slice of the same image strobes in. */
+@keyframes holoGlitch {
+  0%, 87%, 91%, 100% { opacity: 0; }
+  88% { opacity: 0.85; clip-path: inset(16% 0 76% 0); transform: translateX(-7px); }
+  89% { opacity: 0.85; clip-path: inset(58% 0 30% 0); transform: translateX(6px); }
+  90% { opacity: 0.85; clip-path: inset(80% 0 8% 0); transform: translateX(-4px); }
+}
+.holo-glitch {
+  animation: holoGlitch 5.7s steps(1) infinite;
+  filter: grayscale(1) brightness(1.8) !important;
+  mix-blend-mode: screen;
+}
+/* Expanding rings on the emitter disc. */
+@keyframes holoRing {
+  from { transform: scale(0.55); opacity: 0.9; }
+  to   { transform: scale(1.7);  opacity: 0; }
+}
+.holo-ring {
+  animation: holoRing 2.2s ease-out infinite;
+}
+/* Light cone shimmer between emitter and projection. */
+@keyframes holoCone {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 0.85; }
+}
+.holo-cone {
+  animation: holoCone 2.8s ease-in-out infinite;
+}
+/* Placeholder while no imagery exists yet: scrolling wireframe grid. */
+@keyframes holoGridScroll {
+  from { background-position: 0 0, 0 0; }
+  to   { background-position: 0 28px, 28px 0; }
+}
+.holo-grid {
+  background-image:
+    repeating-linear-gradient(0deg, rgba(76, 201, 255, 0.18) 0 1px, transparent 1px 14px),
+    repeating-linear-gradient(90deg, rgba(76, 201, 255, 0.18) 0 1px, transparent 1px 14px);
+  animation: holoGridScroll 1.6s linear infinite;
+}
+/* White-hot flash when the AI render replaces the stand-in photo. */
+@keyframes holoResolve {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+.holo-resolve {
+  animation: holoResolve 900ms ease-out both;
+}
+
 /* Markets ticker: a single track that translates leftward forever. The
    content is rendered twice (back-to-back), so when the first copy has
    fully scrolled out of view the second copy is in the same position the

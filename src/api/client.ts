@@ -483,6 +483,7 @@ interface ApiBriefingStory {
   city: string | null
   category: string | null
   occurred_at: string | null
+  holo_url: string | null
 }
 
 interface ApiBriefing {
@@ -497,6 +498,10 @@ interface ApiBriefing {
 export interface BriefingStory {
   dot: DotRecord
   narration: string
+  // Absolute URL of the story's holographic scene render. Generated in the
+  // background server-side — may 404 for the first ~20s, so the hologram
+  // component polls it and shows the article photo until it resolves.
+  holoUrl: string | null
 }
 
 export interface BriefingScript {
@@ -527,6 +532,7 @@ export async function fetchBriefing(signal?: AbortSignal): Promise<BriefingScrip
     const category = ensureCategory(s.category)
     stories.push({
       narration: s.narration,
+      holoUrl: s.holo_url ? `${API_BASE}${s.holo_url}` : null,
       dot: {
         id: `cl:${s.cluster_id}`,
         lat: s.lat,
