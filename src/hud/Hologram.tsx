@@ -429,8 +429,8 @@ export function Hologram({ src, fallbackSrc, index, total, label }: HologramProp
         </div>
       </div>
 
-      {/* Status + caption */}
-      <div className="mt-1.5 flex items-center gap-1.5 text-hud-2xs tracking-[0.25em] text-[#4cc9ff]/75">
+      {/* Status + caption (briefing-sub: fade in on each story remount) */}
+      <div className="briefing-sub mt-1.5 flex items-center gap-1.5 text-hud-2xs tracking-[0.25em] text-[#4cc9ff]/75">
         <span
           className="inline-block w-1 h-1 rounded-full flex-shrink-0"
           style={{
@@ -441,7 +441,7 @@ export function Hologram({ src, fallbackSrc, index, total, label }: HologramProp
         />
         <span>{status}</span>
       </div>
-      <div className="mt-0.5 text-hud-2xs tracking-[0.2em] text-[#cfe6ff]/55 uppercase truncate">
+      <div className="briefing-sub mt-0.5 text-hud-2xs tracking-[0.2em] text-[#cfe6ff]/55 uppercase truncate">
         {label}
       </div>
     </div>

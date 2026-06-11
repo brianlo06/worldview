@@ -124,6 +124,47 @@ canvas {
   animation: briefingSubIn 500ms ease-out backwards;
 }
 
+/* Caption words stagger in one by one (delay set inline per word). */
+@keyframes briefingWordIn {
+  from { opacity: 0; transform: translateY(5px); filter: blur(4px); }
+  to   { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+.briefing-word {
+  display: inline-block;
+  white-space: pre;
+  animation: briefingWordIn 340ms ease-out backwards;
+}
+
+/* Once a caption has been fully spoken, the text column blur-fades away
+   during the pause before the next story. */
+@keyframes briefingTextOut {
+  to { opacity: 0; transform: translateY(6px); filter: blur(4px); }
+}
+.briefing-text-out {
+  animation: briefingTextOut 650ms ease-in forwards;
+}
+
+/* Status word in the top strip cross-fades when the location changes. */
+.briefing-status-in {
+  animation: briefingSubIn 400ms ease-out backwards;
+}
+
+/* The lower-third rises in at briefing start and sinks away after the
+   outro is spoken. */
+@keyframes briefingLowerIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.briefing-lower-in {
+  animation: briefingLowerIn 450ms ease-out backwards;
+}
+@keyframes briefingLowerOut {
+  to { opacity: 0; transform: translateY(10px); }
+}
+.briefing-lower-out {
+  animation: briefingLowerOut 700ms ease-in forwards;
+}
+
 /* Briefing hologram (hud/Hologram.tsx): a story scene projected as a rotating
    volumetric hologram. Bob and sway are nested (outer/inner elements) because
    both animate `transform` and would otherwise cancel each other. */

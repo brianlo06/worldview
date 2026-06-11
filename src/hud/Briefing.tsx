@@ -105,6 +105,25 @@ const sleep = (ms: number, signal: AbortSignal): Promise<void> =>
     }, { once: true })
   })
 
+// Caption text that materializes word by word as JARVIS speaks (each word
+// staggers in with a blur-fade), then blur-fades out as a block once the
+// narration is done. Keyed per story by the parent so the stagger restarts.
+function Caption({ text }: { text: string }) {
+  return (
+    <div className="mt-1.5 text-hud-sm normal-case tracking-normal leading-relaxed text-[#dfeeff]/90">
+      {text.split(/\s+/).map((w, i) => (
+        <span
+          key={i}
+          className="briefing-word"
+          style={{ animationDelay: `${Math.min(i * 32, 1400)}ms` }}
+        >
+          {w + ' '}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 export function Briefing({ onClose }: BriefingProps) {
   const setFlyToTarget = useAppStore((s) => s.setFlyToTarget)
   const setSelectedEntity = useAppStore((s) => s.setSelectedEntity)
@@ -118,6 +137,9 @@ export function Briefing({ onClose }: BriefingProps) {
   const [index, setIndex] = useState(0)
   const [images, setImages] = useState<string[]>([])
   const [imgIdx, setImgIdx] = useState(0)
+  // True once the current caption has been fully spoken — drives the
+  // transition-out so finished captions don't just sit there (or vanish).
+  const [captionDone, setCaptionDone] = useState(false)
   const abortRef = useRef(new AbortController())
 
   // Visual carousel: while a story is narrated, cycle through its cluster's
@@ -170,11 +192,13 @@ export function Briefing({ onClose }: BriefingProps) {
 
       // Intro
       audio.whoosh(0.5)
+      setCaptionDone(false)
       await speak(
         script.intro || `Here are the top ${dots.length} stories at this hour.`,
         { rate: 0.95 },
       )
       if (aborted()) return
+      setCaptionDone(true) // intro caption fades during the handoff
       await sleep(400, ctrl.signal)
       if (aborted()) return
 
@@ -187,6 +211,7 @@ export function Briefing({ onClose }: BriefingProps) {
         if (aborted()) return
         const { dot: d, narration } = script.stories[i]
         setIndex(i)
+        setCaptionDone(false)
 
         // Visual feed: start with the story's own image, then pull the
         // cluster's member images in the background for the carousel.
@@ -215,6 +240,8 @@ export function Briefing({ onClose }: BriefingProps) {
 
         await speak(narration || fallbackNarration(d), { rate: 0.95 })
         if (aborted()) return
+        // Caption's been read — let it transition out during the pause.
+        setCaptionDone(true)
         await sleep(POST_SPEECH_PAUSE_MS, ctrl.signal)
       }
 
@@ -223,9 +250,11 @@ export function Briefing({ onClose }: BriefingProps) {
       setBriefingPin(null)
       setImages([])
       setPhase('outro')
+      setCaptionDone(false)
       audio.whoosh(0.4)
       await speak(script.outro || 'End of briefing.', { rate: 0.95 })
       if (aborted()) return
+      setCaptionDone(true) // the whole lower-third sinks away after the outro
       // Soft reset: glide back to the wide home view before the cleanup
       // hands the camera to the tour, so it resumes its idle spin from the
       // framing the app opened on instead of wherever story 5 happened.
@@ -332,7 +361,8 @@ export function Briefing({ onClose }: BriefingProps) {
             {num} / {totalStr || '—'}
           </span>
           <span
-            className="text-hud-xs tracking-[0.32em] text-[#7be0ff] tabular-nums"
+            key={statusWord}
+            className="briefing-status-in text-hud-xs tracking-[0.32em] text-[#7be0ff] tabular-nums"
             style={{ textShadow: '0 0 10px rgba(124,224,255,0.55)' }}
           >
             {statusWord}
@@ -379,7 +409,9 @@ export function Briefing({ onClose }: BriefingProps) {
       {(subtitle || feedSrc) && (
         <div className="pointer-events-none fixed inset-x-0 bottom-[4.5rem] z-[900] flex justify-center px-4">
           <div
-            className="pointer-events-auto holo-frame border border-[#7be0ff]/40 bg-[#02040a]/85 backdrop-blur-sm flex items-stretch w-[46rem] max-w-full overflow-hidden text-left"
+            className={`briefing-lower-in pointer-events-auto holo-frame border border-[#7be0ff]/40 bg-[#02040a]/85 backdrop-blur-sm flex items-stretch w-[46rem] max-w-full overflow-hidden text-left ${
+              captionDone && phase === 'outro' ? 'briefing-lower-out' : ''
+            }`}
             style={{ boxShadow: '0 0 24px rgba(124,224,255,0.2)' }}
           >
             {feedSrc && (
@@ -423,28 +455,26 @@ export function Briefing({ onClose }: BriefingProps) {
                 </div>
               </div>
             )}
-            <div className="flex-1 px-4 py-3 min-w-0 flex flex-col justify-center">
+            <div
+              key={`${phase}-${index}`}
+              className={`flex-1 px-4 py-3 min-w-0 flex flex-col justify-center ${
+                captionDone ? 'briefing-text-out' : ''
+              }`}
+            >
               {phase === 'story' && current && (
-                <div className="text-hud-2xs tracking-[0.3em] text-[#cfe6ff]/70 tabular-nums uppercase">
+                <div className="briefing-sub text-hud-2xs tracking-[0.3em] text-[#cfe6ff]/70 tabular-nums uppercase">
                   {locationLabel(current)} · {fmtCoord(current.lat, 'N', 'S')} ·{' '}
                   {fmtCoord(current.lon, 'E', 'W')}
                   {current.countryCode ? ` · ${current.countryCode.toUpperCase()}` : ''}
                 </div>
               )}
-              {subtitle && (
-                <div
-                  key={`${phase}-${index}`}
-                  className="briefing-sub mt-1.5 text-hud-sm normal-case tracking-normal leading-relaxed text-[#dfeeff]/90"
-                >
-                  {subtitle}
-                </div>
-              )}
+              {subtitle && <Caption text={subtitle} />}
               {phase === 'story' && current?.url && (
                 <a
                   href={current.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-2 text-hud-2xs tracking-[0.25em] uppercase text-[#4cc9ff] hover:text-[#7be0ff]"
+                  className="briefing-sub mt-2 text-hud-2xs tracking-[0.25em] uppercase text-[#4cc9ff] hover:text-[#7be0ff]"
                 >
                   OPEN ARTICLE →
                 </a>
