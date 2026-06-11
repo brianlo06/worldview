@@ -3,9 +3,6 @@ export interface AudioHandle {
   click(): void
   whoosh(intensity?: number): void
   chime(): void
-  /** Low "live transmission" bed layered under briefings. Ramped in/out. */
-  startBed(): void
-  stopBed(): void
   setMuted(muted: boolean): void
   isMuted(): boolean
   /** Register the function that stops speech (both TTS paths) on mute.
@@ -163,60 +160,6 @@ export function createAudio(): AudioHandle {
     }
   }
 
-  // Briefing bed: looped low-passed noise, barely audible, with a slow LFO
-  // drifting the filter so it breathes — reads as an open comms channel.
-  let bedSource: AudioBufferSourceNode | null = null
-  let bedGain: GainNode | null = null
-
-  function startBed() {
-    if (muted || bedSource) return
-    const c = ensureCtx()
-    if (c.state === 'suspended') void c.resume()
-    const t = c.currentTime
-
-    const src = c.createBufferSource()
-    src.buffer = getNoiseBuffer(c)
-    src.loop = true
-
-    const filter = c.createBiquadFilter()
-    filter.type = 'lowpass'
-    filter.frequency.value = 140
-    filter.Q.value = 0.8
-    const lfo = c.createOscillator()
-    lfo.frequency.value = 0.06
-    const lfoAmp = c.createGain()
-    lfoAmp.gain.value = 45
-    lfo.connect(lfoAmp).connect(filter.frequency)
-    lfo.start()
-
-    const gain = c.createGain()
-    gain.gain.setValueAtTime(0.0001, t)
-    gain.gain.linearRampToValueAtTime(0.05, t + 2.0)
-
-    src.connect(filter).connect(gain).connect(master!)
-    src.start(t)
-    bedSource = src
-    bedGain = gain
-  }
-
-  function stopBed() {
-    if (!bedSource || !ctx) return
-    const t = ctx.currentTime
-    bedGain?.gain.cancelScheduledValues(t)
-    bedGain?.gain.setValueAtTime(bedGain.gain.value, t)
-    bedGain?.gain.linearRampToValueAtTime(0.0001, t + 1.5)
-    const src = bedSource
-    bedSource = null
-    bedGain = null
-    setTimeout(() => {
-      try {
-        src.stop()
-      } catch {
-        // already stopped
-      }
-    }, 1600)
-  }
-
   let speechCanceller: (() => void) | null = null
 
   function setMuted(m: boolean) {
@@ -241,8 +184,6 @@ export function createAudio(): AudioHandle {
     click,
     whoosh,
     chime,
-    startBed,
-    stopBed,
     setMuted,
     isMuted: () => muted,
     setSpeechCanceller: (fn: () => void) => {

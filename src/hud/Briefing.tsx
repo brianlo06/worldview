@@ -197,7 +197,6 @@ export function Briefing({ onClose }: BriefingProps) {
 
       // Intro
       audio.whoosh(0.5)
-      audio.startBed() // open-channel hum under the whole briefing
       setCaptionDone(false)
       setSpokenWord(-1)
       await speak(
@@ -272,7 +271,6 @@ export function Briefing({ onClose }: BriefingProps) {
         onWord: setSpokenWord,
       })
       if (aborted()) return
-      audio.stopBed()
       setCaptionDone(true) // the whole lower-third sinks away after the outro
       // Soft reset: glide back to the wide home view before the cleanup
       // hands the camera to the tour, so it resumes its idle spin from the
@@ -301,7 +299,6 @@ export function Briefing({ onClose }: BriefingProps) {
       // Abort on unmount or re-run.
       ctrl.abort()
       silence()
-      audio.stopBed()
       // Clear the story ring and hand the camera back to the tour if we
       // borrowed it. Runs on every exit path: done, abort, error, unmount.
       useAppStore.getState().setBriefingPin(null)

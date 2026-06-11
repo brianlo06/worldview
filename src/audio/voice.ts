@@ -1,11 +1,13 @@
-/** JARVIS voice. Primary path: the server's neural TTS (GET /tts — Piper,
- *  British male, cached per line) played through an <audio> element with
- *  estimated per-word timing for caption sync. Fallback on any failure:
- *  the original Web Speech Synthesis path, with exact word timing from
- *  onboundary events. Respects the existing audio mute state. */
+/** JARVIS voice. Web Speech Synthesis with exact word timing from
+ *  onboundary events for caption sync. A server neural-TTS path (GET /tts,
+ *  Piper) exists below but is DISABLED — the user preferred the browser
+ *  voice (and its pacing) after hearing both. Flip SERVER_TTS_ENABLED to
+ *  re-try it. Respects the existing audio mute state. */
 
 import { audio } from './audio'
 import { API_BASE } from '../api/client'
+
+const SERVER_TTS_ENABLED = false
 
 // How long to wait for the server to synthesize before falling back. First
 // requests for a line can take several seconds (subprocess synth on a small
@@ -53,9 +55,10 @@ function ttsUrl(text: string): string {
   return `${API_BASE}/tts?text=${encodeURIComponent(text)}`
 }
 
-/** Warm the browser HTTP cache for a line so speak() starts instantly. */
+/** Warm the browser HTTP cache for a line so speak() starts instantly.
+ *  No-op while the server voice is disabled. */
 export function prefetchSpeech(text: string): void {
-  if (!text || audio.isMuted()) return
+  if (!SERVER_TTS_ENABLED || !text || audio.isMuted()) return
   fetch(ttsUrl(text)).catch(() => {})
 }
 
@@ -238,8 +241,11 @@ function speakBrowser(text: string, opts: SpeakOptions): Promise<void> {
 export async function speak(text: string, opts: SpeakOptions = {}): Promise<void> {
   if (!text || audio.isMuted()) return
   if (opts.interrupt !== false) silence()
-  const played = await speakServer(text, opts)
-  if (!played) await speakBrowser(text, opts)
+  if (SERVER_TTS_ENABLED) {
+    const played = await speakServer(text, opts)
+    if (played) return
+  }
+  await speakBrowser(text, opts)
 }
 
 /** Cancel any speech currently in flight (both paths). */
