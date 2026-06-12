@@ -105,6 +105,78 @@ const sleep = (ms: number, signal: AbortSignal): Promise<void> =>
     }, { once: true })
   })
 
+// Loading sequence while the server selects stories and writes the script
+// (1-15s) — a JARVIS uplink: radar spinner, stage lines ticking through
+// boot-log style, and an indeterminate sweep. The stages are flavor (the
+// real work is one POST), paced so a fast cached response still reads as
+// "it did something" and a slow LLM synth holds on the final line.
+const LOAD_STAGES = [
+  'ESTABLISHING UPLINK',
+  'SCANNING GLOBAL FEED',
+  'RANKING TOP STORIES',
+  'SYNTHESIZING NARRATION',
+]
+const LOAD_STAGE_MS = 1300
+
+function BriefingLoader() {
+  const [stage, setStage] = useState(0)
+  useEffect(() => {
+    if (stage >= LOAD_STAGES.length - 1) return
+    const t = setTimeout(() => setStage((s) => s + 1), LOAD_STAGE_MS)
+    return () => clearTimeout(t)
+  }, [stage])
+
+  return (
+    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-[900] flex justify-center px-4">
+      <div
+        className="briefing-lower-in holo-frame border border-[#7be0ff]/40 bg-[#02040a]/85 backdrop-blur-sm w-[30rem] max-w-full overflow-hidden"
+        style={{ boxShadow: '0 0 24px rgba(124,224,255,0.2)' }}
+      >
+        {/* Indeterminate sweep along the top edge */}
+        <div className="relative h-[2px] bg-[#4cc9ff]/10 overflow-hidden">
+          <div className="briefing-loadbar absolute inset-y-0 w-1/3" />
+        </div>
+        <div className="flex items-center gap-4 px-4 py-3">
+          {/* Radar spinner: two counter-rotating arcs + pulsing core */}
+          <div className="relative w-14 h-14 flex-shrink-0">
+            <div className="briefing-spin absolute inset-0 rounded-full border border-transparent border-t-[#7be0ff]/90 border-r-[#7be0ff]/30" />
+            <div className="briefing-spin-rev absolute inset-1.5 rounded-full border border-transparent border-b-[#4cc9ff]/70 border-l-[#4cc9ff]/20" />
+            <div
+              className="absolute inset-0 m-auto w-1.5 h-1.5 rounded-full"
+              style={{
+                background: '#7be0ff',
+                boxShadow: '0 0 8px #7be0ff, 0 0 16px #4cc9ff80',
+                animation: 'pulse 1.2s ease-in-out infinite',
+              }}
+            />
+          </div>
+          {/* Stage console */}
+          <div className="flex-1 min-w-0 space-y-1">
+            {LOAD_STAGES.slice(0, stage + 1).map((s, i) => (
+              <div
+                key={s}
+                className="briefing-sub flex items-center gap-2 text-hud-2xs tracking-[0.22em]"
+              >
+                {i < stage ? (
+                  <span className="text-[#9affb2]" style={{ textShadow: '0 0 6px rgba(154,255,178,0.5)' }}>
+                    ✓
+                  </span>
+                ) : (
+                  <span className="briefing-blink text-[#7be0ff]">▸</span>
+                )}
+                <span className={i < stage ? 'text-[#cfe6ff]/45' : 'text-[#cfe6ff]/90'}>
+                  {s}
+                  {i === stage && <span className="briefing-ellipsis" />}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // Caption text that materializes word by word (each word staggers in with a
 // blur-fade), lights up karaoke-style as JARVIS actually speaks each word
 // (spoken = highest spoken word index), then blur-fades out as a block once
@@ -407,6 +479,9 @@ export function Briefing({ onClose }: BriefingProps) {
           </button>
         </div>
       </div>
+
+      {/* Uplink animation while the script is being selected + written */}
+      {phase === 'loading' && <BriefingLoader />}
 
       {/* Holographic scene reconstruction, projected stage-right while a
           story plays. Keyed by story so the projection re-materializes per

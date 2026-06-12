@@ -290,6 +290,43 @@ canvas {
   transform: translateX(130%);
 }
 
+/* Briefing loader: radar spinner arcs, indeterminate sweep bar, blinking
+   cursor and trailing ellipsis for the active stage line. */
+@keyframes briefingSpin {
+  to { transform: rotate(360deg); }
+}
+.briefing-spin {
+  animation: briefingSpin 1.4s linear infinite;
+}
+.briefing-spin-rev {
+  animation: briefingSpin 2.1s linear infinite reverse;
+}
+@keyframes briefingLoadbar {
+  from { left: -35%; }
+  to   { left: 100%; }
+}
+.briefing-loadbar {
+  background: linear-gradient(90deg, transparent, rgba(124, 224, 255, 0.85), transparent);
+  animation: briefingLoadbar 1.6s ease-in-out infinite;
+}
+@keyframes briefingBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+.briefing-blink {
+  animation: briefingBlink 0.9s steps(1) infinite;
+}
+@keyframes briefingEllipsis {
+  0%   { content: ''; }
+  25%  { content: '.'; }
+  50%  { content: '..'; }
+  75%  { content: '...'; }
+}
+.briefing-ellipsis::after {
+  content: '';
+  animation: briefingEllipsis 1.4s steps(1) infinite;
+}
+
 /* Attract pulse: draws the eye to the briefing chip until first use. */
 @keyframes attractPulse {
   0%, 100% {
