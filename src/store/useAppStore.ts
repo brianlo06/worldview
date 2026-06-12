@@ -111,6 +111,11 @@ interface AppState {
   briefingArcs: { lat: number; lon: number }[] | null
   setBriefingArcs: (a: AppState['briefingArcs']) => void
 
+  // True while the briefing overlay is mounted — other HUD surfaces (the
+  // anomaly column, which the hologram would cover) step aside for it.
+  briefingActive: boolean
+  setBriefingActive: (b: boolean) => void
+
   // Market / currency snapshots — rendered in the right-side HUD panel,
   // not as dots on the globe
   markets: MarketSnapshot[]
@@ -203,6 +208,9 @@ export const useAppStore = create<AppState>()(
 
   briefingArcs: null,
   setBriefingArcs: (a) => set({ briefingArcs: a }),
+
+  briefingActive: false,
+  setBriefingActive: (b) => set({ briefingActive: b }),
 
   markets: [],
   setMarkets: (m) => set({ markets: m }),

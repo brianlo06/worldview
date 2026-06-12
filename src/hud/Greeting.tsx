@@ -53,7 +53,7 @@ export function Greeting() {
   if (gone) return null
   return (
     <div
-      className={`pointer-events-none fixed left-1/2 top-[16%] -translate-x-1/2 z-[950] px-4 ${
+      className={`pointer-events-none fixed left-1/2 bottom-[calc(6rem+env(safe-area-inset-bottom))] -translate-x-1/2 z-[950] px-4 ${
         leaving ? 'briefing-text-out' : ''
       }`}
     >

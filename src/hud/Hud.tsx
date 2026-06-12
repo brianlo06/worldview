@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useAppStore } from '../store/useAppStore'
 import { MarketsPanel } from './MarketsPanel'
 import { CenterCrosshair, TelemetryReadout } from './Telemetry'
@@ -11,7 +10,10 @@ import { CategoryLegend } from './CategoryLegend'
 import { SelectionCard } from './SelectionCard'
 
 export function Hud() {
-  const [briefingActive, setBriefingActive] = useState(false)
+  // In the store (not local state) so other HUD surfaces can step aside
+  // while the briefing owns the screen — see AnomalyPanel.
+  const briefingActive = useAppStore((s) => s.briefingActive)
+  const setBriefingActive = useAppStore((s) => s.setBriefingActive)
   const apiStatus = useAppStore((s) => s.apiStatus)
 
   return (

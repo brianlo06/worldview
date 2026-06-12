@@ -20,6 +20,9 @@ export function AnomalyPanel() {
   const anomalies = useAppStore((s) => s.anomalies)
   const setFlyToTarget = useAppStore((s) => s.setFlyToTarget)
   const setSelectedEntity = useAppStore((s) => s.setSelectedEntity)
+  // The briefing hologram projects into this column's space — step aside
+  // (slide right + fade) while a briefing plays, glide back after.
+  const briefingActive = useAppStore((s) => s.briefingActive)
 
   useEffect(() => {
     const el = anomalyListRef.current
@@ -68,7 +71,11 @@ export function AnomalyPanel() {
   }
 
   return (
-    <div className="absolute right-4 top-[clamp(13rem,10rem+3vw,16rem)] w-[22rem] max-w-[calc(100vw-2rem)] pointer-events-none flex flex-col gap-1.5">
+    <div
+      className={`absolute right-4 top-[clamp(13rem,10rem+3vw,16rem)] w-[22rem] max-w-[calc(100vw-2rem)] pointer-events-none flex flex-col gap-1.5 transition-[opacity,transform] duration-700 ease-out ${
+        briefingActive ? 'opacity-0 translate-x-12' : ''
+      }`}
+    >
       {anomalies.length > 0 && (
         <>
           <div className="pointer-events-none flex items-center gap-1.5 text-hud-xs tracking-[0.22em] text-[#ffb59a]/90 px-0.5">
@@ -87,7 +94,9 @@ export function AnomalyPanel() {
           </div>
           <div
             ref={anomalyListRef}
-            className="space-y-1.5 pointer-events-auto overflow-y-auto pr-1"
+            className={`space-y-1.5 overflow-y-auto pr-1 ${
+              briefingActive ? 'pointer-events-none' : 'pointer-events-auto'
+            }`}
             style={{
               maxHeight: 'calc(100vh - 22rem)',
               maskImage: anomaliesOverflow
