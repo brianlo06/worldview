@@ -62,6 +62,7 @@ const VALID_CATEGORIES: ReadonlySet<Category> = new Set<Category>([
   'weather',
   'quake',
   'social',
+  'ai',
 ])
 
 function isCategory(s: string): s is Category {

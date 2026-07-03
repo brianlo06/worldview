@@ -9,6 +9,7 @@ export type Category =
   | 'weather'
   | 'quake'
   | 'social'
+  | 'ai'
   | 'markets'
 
 export interface CategoryDef {
@@ -25,6 +26,7 @@ export const CATEGORIES: CategoryDef[] = [
   { id: 'weather', label: 'Weather', color: '#7fb8ff' },
   { id: 'quake', label: 'Quake', color: '#c79bff' },
   { id: 'social', label: 'Social', color: '#9eecff' },
+  { id: 'ai', label: 'AI', color: '#e879f9' },
   // 'markets' kept in the Category union for backwards-compat (old persisted
   // disabledCategories sets may include it) but no longer surfaced in the legend
   // — markets render in their own HUD panel, not as dots on the globe.
