@@ -3,6 +3,7 @@ import { useAppStore } from '../store/useAppStore'
 import { audio } from '../audio/audio'
 import { TIERS } from '../globe/tiers'
 import { useCurrentTime } from './hooks'
+import { enterGame } from '../game/router'
 
 // Counter that rolls smoothly to a new value instead of snapping — the
 // event count ticking up on a refresh reads as live telemetry.
@@ -134,6 +135,14 @@ export function ControlsPanel() {
           aria-pressed={!muted}
         >
           {muted ? '✕ SND' : '◉ SND'}
+        </button>
+        <button
+          type="button"
+          onClick={() => enterGame()}
+          className="border border-[#ffd166]/50 px-2 py-2 sm:py-1 text-hud-xs text-[#ffd166]/90 hover:bg-[#ffd166]/10 transition"
+          title="World Cache — scan the globe, collect the news"
+        >
+          ◈ GAME
         </button>
       </div>
 

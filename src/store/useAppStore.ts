@@ -97,6 +97,11 @@ interface AppState {
   } | null
   setFlyToTarget: (t: AppState['flyToTarget']) => void
 
+  // One-shot globe pulse signal — Globe consumes and resets to null after
+  // spawning. Used by the game's scan lock-on rings.
+  pulseAt: { lat: number; lon: number; color?: string } | null
+  setPulseAt: (p: AppState['pulseAt']) => void
+
   // Anomaly alerts — active region spikes
   anomalies: ApiAnomaly[]
   setAnomalies: (a: ApiAnomaly[]) => void
@@ -199,6 +204,8 @@ export const useAppStore = create<AppState>()(
 
   flyToTarget: null,
   setFlyToTarget: (t) => set({ flyToTarget: t }),
+  pulseAt: null,
+  setPulseAt: (p) => set({ pulseAt: p }),
 
   anomalies: [],
   setAnomalies: (a) => set({ anomalies: a }),

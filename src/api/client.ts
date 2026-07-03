@@ -378,7 +378,7 @@ export interface ShareCreated {
 }
 
 export async function createShare(payload: {
-  kind: 'ask' | 'city' | 'cluster' | 'view'
+  kind: 'ask' | 'city' | 'cluster' | 'view' | 'pull'
   params?: Record<string, string>
   title?: string | null
   place?: string | null

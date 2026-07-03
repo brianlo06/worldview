@@ -3,6 +3,10 @@ export interface AudioHandle {
   click(): void
   whoosh(intensity?: number): void
   chime(): void
+  /** Short pitched tick — the game reveal's rising lock-on beeps. */
+  blip(freq?: number, peak?: number): void
+  /** Low impact hit — legendary reveal settle. */
+  thud(): void
   setMuted(muted: boolean): void
   isMuted(): boolean
   /** Register the function that stops speech (both TTS paths) on mute.
@@ -160,6 +164,57 @@ export function createAudio(): AudioHandle {
     }
   }
 
+  function blip(freq = 700, peak = 0.22) {
+    if (muted) return
+    const c = ensureCtx()
+    if (c.state === 'suspended') void c.resume()
+    const t = c.currentTime
+    const osc = c.createOscillator()
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(freq, t)
+    osc.frequency.exponentialRampToValueAtTime(freq * 1.06, t + 0.05)
+    const gain = c.createGain()
+    gain.gain.setValueAtTime(0.0001, t)
+    gain.gain.exponentialRampToValueAtTime(peak, t + 0.006)
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.14)
+    osc.connect(gain).connect(master!)
+    osc.start(t)
+    osc.stop(t + 0.16)
+  }
+
+  function thud() {
+    if (muted) return
+    const c = ensureCtx()
+    if (c.state === 'suspended') void c.resume()
+    const t = c.currentTime
+
+    const osc = c.createOscillator()
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(110, t)
+    osc.frequency.exponentialRampToValueAtTime(42, t + 0.4)
+    const oscGain = c.createGain()
+    oscGain.gain.setValueAtTime(0.0001, t)
+    oscGain.gain.exponentialRampToValueAtTime(0.6, t + 0.012)
+    oscGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.55)
+    osc.connect(oscGain).connect(master!)
+    osc.start(t)
+    osc.stop(t + 0.6)
+
+    const src = c.createBufferSource()
+    src.buffer = getNoiseBuffer(c)
+    const filter = c.createBiquadFilter()
+    filter.type = 'lowpass'
+    filter.frequency.setValueAtTime(900, t)
+    filter.frequency.exponentialRampToValueAtTime(120, t + 0.3)
+    const nGain = c.createGain()
+    nGain.gain.setValueAtTime(0.0001, t)
+    nGain.gain.exponentialRampToValueAtTime(0.35, t + 0.01)
+    nGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.35)
+    src.connect(filter).connect(nGain).connect(master!)
+    src.start(t)
+    src.stop(t + 0.4)
+  }
+
   let speechCanceller: (() => void) | null = null
 
   function setMuted(m: boolean) {
@@ -184,6 +239,8 @@ export function createAudio(): AudioHandle {
     click,
     whoosh,
     chime,
+    blip,
+    thud,
     setMuted,
     isMuted: () => muted,
     setSpeechCanceller: (fn: () => void) => {

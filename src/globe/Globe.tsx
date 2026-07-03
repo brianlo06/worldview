@@ -55,6 +55,8 @@ export function Globe() {
   const autoPulse = useAppStore((s) => s.autoPulse)
   const flyToTarget = useAppStore((s) => s.flyToTarget)
   const setFlyToTarget = useAppStore((s) => s.setFlyToTarget)
+  const pulseAt = useAppStore((s) => s.pulseAt)
+  const setPulseAt = useAppStore((s) => s.setPulseAt)
   const layerMode = useAppStore((s) => s.layerMode)
   const searchResults = useAppStore((s) => s.searchResults)
   const allDots = useAppStore((s) => s.dots)
@@ -271,6 +273,13 @@ export function Globe() {
     })
     setFlyToTarget(null)
   }, [flyToTarget, setFlyToTarget])
+
+  // One-shot pulse signal — applied once then cleared (game scan lock-on)
+  useEffect(() => {
+    if (!pulseAt || !sceneRef.current) return
+    sceneRef.current.spawnPulseAt(pulseAt.lat, pulseAt.lon, pulseAt.color)
+    setPulseAt(null)
+  }, [pulseAt, setPulseAt])
 
   // Auto-refresh every REFRESH_INTERVAL_MS, also triggers when layerMode
   // changes. Self-scheduling timeout instead of a fixed interval: while the
