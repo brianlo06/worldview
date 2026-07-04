@@ -16,6 +16,7 @@ import {
   type Rates,
   type IncomeResult,
   type ScanResult,
+  type ScanTarget,
   type UpgradeResult,
 } from '../api/game'
 
@@ -32,7 +33,7 @@ interface GameState {
   rates: Rates | null
 
   boot: () => Promise<void>
-  doScan: (payment?: 'free' | 'flux') => Promise<ScanResult | null>
+  doScan: (payment?: 'free' | 'flux', target?: ScanTarget | null) => Promise<ScanResult | null>
   finishReveal: () => void
   claimIncome: () => Promise<IncomeResult | null>
   upgradeCard: (cardId: string) => Promise<UpgradeResult | null>
@@ -61,11 +62,11 @@ export const useGameStore = create<GameState>()((set, get) => ({
     }
   },
 
-  doScan: async (payment = 'free') => {
+  doScan: async (payment = 'free', target = null) => {
     if (get().scanPhase !== 'idle') return null
     set({ scanPhase: 'scanning', scanError: null, lastScan: null })
     try {
-      const result = await apiScan(payment)
+      const result = await apiScan(payment, target)
       const player = get().player
       set({
         lastScan: result,

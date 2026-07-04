@@ -14,13 +14,31 @@ import { CollectionPanel } from './CollectionPanel'
 import { RatesPanel } from './RatesPanel'
 import { ShareButton } from '../hud/ShareButton'
 import { countryName } from '../globe/countries'
+import { CATEGORIES } from '../globe/categories'
 import { audio } from '../audio/audio'
-import type { ScanResult, Tier } from '../api/game'
+import type { ScanResult, ScanTarget, Tier } from '../api/game'
 
 const FLY_MS = 2000
 const TIER_ORDER: Tier[] = ['common', 'uncommon', 'rare', 'epic', 'legendary']
 
 type RevealStage = 'flight' | 'lockon' | 'materialize' | 'flip' | 'done'
+
+// Targeted-scan choices: continents mirror the server's geo table; categories
+// are the globe legend (markets never mints cards).
+const TARGET_CONTINENTS = [
+  { id: 'north-america', label: 'N. AMERICA' },
+  { id: 'south-america', label: 'S. AMERICA' },
+  { id: 'europe', label: 'EUROPE' },
+  { id: 'africa', label: 'AFRICA' },
+  { id: 'asia', label: 'ASIA' },
+  { id: 'oceania', label: 'OCEANIA' },
+]
+
+interface Target {
+  kind: 'continent' | 'category'
+  value: string
+  label: string
+}
 
 function CountdownToReset() {
   const [now, setNow] = useState(Date.now())
@@ -49,6 +67,8 @@ export function GameView() {
     doScan, finishReveal, loadCollection, loadRates, rates,
   } = useGameStore()
   const [panel, setPanel] = useState<'none' | 'collection' | 'rates'>('none')
+  const [target, setTarget] = useState<Target | null>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
 
   // Reveal choreography state — all local; the pull itself is committed
   // server-side before any of this starts, so interrupting costs nothing.
@@ -88,7 +108,9 @@ export function GameView() {
   const scans = player?.wallet.scans_left ?? 0
   const flux = player?.wallet.flux ?? 0
   const bonusScanCost = rates?.scan_prices.bonus ?? 60
+  const targetedScanCost = rates?.scan_prices.targeted ?? 100
   const canBonusScan = scans <= 0 && flux >= bonusScanCost
+  const canScan = target ? flux >= targetedScanCost : scans > 0 || canBonusScan
 
   function schedule(fn: () => void, ms: number) {
     timersRef.current.push(window.setTimeout(fn, ms))
@@ -185,7 +207,16 @@ export function GameView() {
 
   async function onScan() {
     audio.click()
-    const result = await doScan(scans > 0 ? 'free' : 'flux')
+    setPickerOpen(false)
+    const scanTarget: ScanTarget | null = target
+      ? target.kind === 'continent'
+        ? { continent: target.value }
+        : { category: target.value }
+      : null
+    const result = await doScan(
+      target || scans <= 0 ? 'flux' : 'free',
+      scanTarget,
+    )
     if (!result) return
     const { lat, lon } = result.card
     const hasGeo = lat != null && lon != null
@@ -282,25 +313,85 @@ export function GameView() {
             {scanError.includes('scans') && <CountdownToReset />}
           </div>
         )}
+        {scanPhase === 'idle' && bootStatus === 'ready' && pickerOpen && (
+          <div className="max-w-[min(92vw,28rem)] border border-[#4cc9ff]/30 bg-[#02040a]/92 p-3">
+            <div className="text-hud-2xs tracking-[0.25em] text-[#7be0ff]">
+              TARGETED SCAN · {targetedScanCost} FLUX · NARROWS THE POOL
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {TARGET_CONTINENTS.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => {
+                    audio.click()
+                    setTarget({ kind: 'continent', value: c.id, label: c.label })
+                    setPickerOpen(false)
+                  }}
+                  className="border border-[#4cc9ff]/35 px-2 py-1 text-hud-2xs text-[#9db8cc] hover:bg-[#4cc9ff]/10 transition"
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {CATEGORIES.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => {
+                    audio.click()
+                    setTarget({ kind: 'category', value: c.id, label: c.label.toUpperCase() })
+                    setPickerOpen(false)
+                  }}
+                  className="border px-2 py-1 text-hud-2xs transition hover:bg-white/5"
+                  style={{ borderColor: `${c.color}55`, color: c.color }}
+                >
+                  {c.label.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {scanPhase === 'idle' && bootStatus === 'ready' && (
-          <button
-            type="button"
-            onClick={onScan}
-            disabled={scans <= 0 && !canBonusScan}
-            className={`border px-8 py-3 text-hud-sm tracking-[0.35em] transition ${
-              scans > 0 || canBonusScan
-                ? 'border-[#7be0ff] bg-[#4cc9ff]/12 text-[#cfe6ff] hover:bg-[#4cc9ff]/22'
-                : 'border-[#4cc9ff]/25 text-[#4cc9ff]/40'
-            }`}
-          >
-            {scans > 0 ? '◎ SCAN THE WORLD' : canBonusScan ? (
-              `◎ BONUS SCAN · ${bonusScanCost} FLUX`
-            ) : (
-              <span className="flex items-center gap-2">
-                ◌ NO SCANS · {bonusScanCost} FLUX NEEDED · <CountdownToReset />
-              </span>
-            )}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onScan}
+              disabled={!canScan}
+              className={`border px-8 py-3 text-hud-sm tracking-[0.35em] transition ${
+                canScan
+                  ? 'border-[#7be0ff] bg-[#4cc9ff]/12 text-[#cfe6ff] hover:bg-[#4cc9ff]/22'
+                  : 'border-[#4cc9ff]/25 text-[#4cc9ff]/40'
+              }`}
+            >
+              {target ? (
+                `◎ SCAN ${target.label} · ${targetedScanCost} FLUX`
+              ) : scans > 0 ? '◎ SCAN THE WORLD' : canBonusScan ? (
+                `◎ BONUS SCAN · ${bonusScanCost} FLUX`
+              ) : (
+                <span className="flex items-center gap-2">
+                  ◌ NO SCANS · {bonusScanCost} FLUX NEEDED · <CountdownToReset />
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                audio.click()
+                if (target) setTarget(null)
+                else setPickerOpen(!pickerOpen)
+              }}
+              className={`border px-3 py-3 text-hud-xs tracking-[0.2em] transition ${
+                target
+                  ? 'border-[#ffd166]/60 text-[#ffd166] hover:bg-[#ffd166]/10'
+                  : 'border-[#4cc9ff]/40 text-[#4cc9ff]/90 hover:bg-[#4cc9ff]/10'
+              }`}
+              title={target ? 'Clear target' : 'Targeted scan'}
+            >
+              {target ? `✕ ${target.label}` : '◈ TARGET'}
+            </button>
+          </div>
         )}
         {scanPhase === 'scanning' && (
           <div className="border border-[#7be0ff]/60 bg-[#02040a]/80 px-8 py-3 text-hud-sm tracking-[0.35em] text-[#7be0ff] game-scanning">

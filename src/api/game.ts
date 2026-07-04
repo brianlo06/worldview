@@ -90,7 +90,7 @@ export interface Rates {
     freshness_multiplier: number
     accrual_cap_hours: number
   }
-  scan_prices: { bonus: number }
+  scan_prices: { bonus: number; targeted: number }
   card_upgrades: {
     max_level: number
     income_bonus_per_level: number
@@ -141,7 +141,7 @@ async function request<T>(
     if (t) headers['X-Player-Token'] = t
   }
   const res = await fetch(`${API_BASE}${path}`, { ...init, headers })
-  if (res.status === 429) {
+  if (res.status === 429 || res.status === 409) {
     const body = await res.json().catch(() => null)
     const detail = body?.detail
     throw new ScanRefusedError(
@@ -176,10 +176,20 @@ export async function ensurePlayer(): Promise<Player> {
   return created
 }
 
-export function scan(payment: 'free' | 'flux' = 'free'): Promise<ScanResult> {
+/** Targeted scans restrict the pull to one continent or category and are
+ * always flux-priced server-side, leaving free scans untouched. */
+export interface ScanTarget {
+  continent?: string
+  category?: string
+}
+
+export function scan(
+  payment: 'free' | 'flux' = 'free',
+  target?: ScanTarget | null,
+): Promise<ScanResult> {
   return request<ScanResult>('/game/scan', {
     method: 'POST',
-    body: JSON.stringify({ payment }),
+    body: JSON.stringify({ payment, ...(target ?? {}) }),
   })
 }
 

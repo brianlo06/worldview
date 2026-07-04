@@ -59,8 +59,9 @@ export function RatesPanel({ onClose }: { onClose: () => void }) {
             Pity: Epic or better within {rates.pity.epic} scans, Legendary within{' '}
             {rates.pity.legendary}. {rates.daily_scans.base} free scans a day (
             {rates.daily_scans.streak_amount} on a {rates.daily_scans.streak_min_days}
-            -day streak). Bonus scans cost {rates.scan_prices.bonus} Flux. No purchases,
-            ever.
+            -day streak). Bonus scans cost {rates.scan_prices.bonus} Flux; targeted
+            scans (one region or category) cost {rates.scan_prices.targeted}. No
+            purchases, ever.
           </div>
           <div className="mt-3 border-t border-[#4cc9ff]/20 pt-2">
             <div className="text-hud-2xs tracking-[0.22em] text-[#7be0ff]">
